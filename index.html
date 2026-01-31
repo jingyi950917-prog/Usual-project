@@ -2,188 +2,211 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="能量站">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SugarBroccoli - 经营多邻国</title>
     <style>
         :root {
             --duo-green: #58cc02; --duo-border: #46a302;
-            --duo-orange: #ff9600; --duo-blue: #1cb0f6;
-            --duo-red: #ff4b4b; --bg: #ffffff;
+            --duo-blue: #1cb0f6; --duo-orange: #ff9600;
+            --duo-red: #ff4b4b; --text: #4b4b4b;
         }
-        body { font-family: "din-round", "PingFang SC", sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; margin: 0; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: "din-round", "PingFang SC", sans-serif; background: #fff; margin: 0; color: var(--text); overflow-x: hidden; }
+
+        /* 动画定义 */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .page { display: none; padding: 30px 20px; min-height: 100vh; animation: fadeIn 0.5s ease-out forwards; }
+        .active { display: block; }
+
+        /* 通用组件 */
+        .owl-big { font-size: 80px; text-align: center; margin-bottom: 20px; animation: bounce 2s infinite; }
+        .title { font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 10px; color: #3c3c3c; }
+        .sub-title { font-size: 16px; text-align: center; color: #afafaf; margin-bottom: 30px; }
         
-        .app-container { width: 100%; max-width: 420px; }
-
-        /* 顶部状态栏：多邻国标志性的进度条 */
-        .top-nav { display: flex; align-items: center; gap: 15px; margin-bottom: 30px; }
-        .progress-container { flex-grow: 1; height: 16px; background: #e5e5e5; border-radius: 20px; position: relative; }
-        .progress-bar { height: 100%; width: 0%; background: var(--duo-green); border-radius: 20px; transition: 0.5s; box-shadow: inset 0 -4px rgba(0,0,0,0.1); }
-
-        /* 核心卡片样式 */
         .card {
             background: white; border: 2px solid #e5e5e5; border-bottom: 6px solid #e5e5e5;
-            border-radius: 20px; padding: 20px; margin-bottom: 20px; position: relative;
+            border-radius: 20px; padding: 20px; margin-bottom: 15px;
         }
-        .card:active { border-bottom-width: 2px; transform: translateY(4px); }
-
-        /* 多邻国式角色提示 */
-        .duo-character { display: flex; gap: 15px; align-items: center; margin-bottom: 20px; }
-        .owl { font-size: 50px; }
-        .speech-bubble {
-            background: white; border: 2px solid #e5e5e5; padding: 10px 15px;
-            border-radius: 15px; position: relative; font-weight: bold; font-size: 14px;
-        }
-
-        /* 按钮：标志性的厚实感 */
         .btn {
-            width: 100%; padding: 15px; border-radius: 15px; border: none;
-            font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.1s;
-            text-transform: uppercase; letter-spacing: 1px;
+            width: 100%; padding: 16px; border-radius: 16px; border: none; font-weight: bold;
+            font-size: 17px; cursor: pointer; transition: 0.1s; text-transform: uppercase;
         }
-        .btn-green { background: var(--duo-green); color: white; border-bottom: 5px solid var(--duo-border); }
-        .btn-blue { background: var(--duo-blue); color: white; border-bottom: 5px solid #148fcc; }
-        .btn:active { border-bottom-width: 0; transform: translateY(5px); }
+        .btn-green { background: var(--duo-green); color: white; border-bottom: 6px solid var(--duo-border); }
+        .btn-blue { background: var(--duo-blue); color: white; border-bottom: 6px solid #1899d6; }
+        .btn:active { border-bottom-width: 0; transform: translateY(6px); }
 
-        /* 输入框 */
-        textarea, input {
-            width: 100%; border: 2px solid #e5e5e5; border-radius: 15px;
-            padding: 12px; box-sizing: border-box; font-size: 16px; outline: none; background: #f7f7f7;
+        /* 行业选择按钮组 */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .industry-btn {
+            padding: 20px; border: 2px solid #e5e5e5; border-bottom: 6px solid #e5e5e5;
+            border-radius: 20px; text-align: center; cursor: pointer;
         }
+        .industry-btn.selected { border-color: var(--duo-blue); background: #f0f9ff; color: var(--duo-blue); }
 
-        /* 隐藏 section 的逻辑 */
-        .hidden { display: none; }
+        /* 主页面顶部栏 */
+        .top-bar { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
+        .prog-bg { flex: 1; height: 16px; background: #e5e5e5; border-radius: 10px; }
+        .prog-fill { height: 100%; width: 0%; background: var(--duo-green); border-radius: 10px; transition: 1s; }
+
+        /* 勋章浮层 */
+        .modal {
+            position: fixed; inset: 0; background: rgba(255,255,255,0.98); 
+            z-index: 100; display: none; padding: 40px 20px; flex-direction: column; align-items: center;
+        }
     </style>
 </head>
 <body>
 
-  <div class="card" style="text-align:center; padding: 15px;">
-    <p style="margin:0 0 10px 0; font-size:12px; color:#afafaf; font-weight:bold;">成就勋章</p>
-    <div id="badge-wall" style="display:flex; justify-content:center; gap:10px; font-size:24px; filter: grayscale(100%); opacity: 0.3;">
-        <span title="首单入账">💰</span>
-        <span title="盈利王者">👑</span>
-        <span title="精明猎手">🦊</span>
-        <span title="拒绝拖延">🔥</span>
-    </div>
-  </div>
+    <section id="page-welcome" class="page active">
+        <div class="owl-big">🦉</div>
+        <div class="title">嘿！准备好赚钱了吗？</div>
+        <div class="sub-title">在这里，我们把枯燥的账本变成<br>你通往财富自由的经验值。</div>
+        <button class="btn btn-green" onclick="goPage('page-industry')">立即开始</button>
+    </section>
 
-    
-<div class="app-container">
-    <div class="top-nav">
-        <span style="font-size: 24px;">🦉</span>
-        <div class="progress-container">
-            <div id="main-progress" class="progress-bar"></div>
+    <section id="page-industry" class="page">
+        <div class="title">你是哪种主理人？</div>
+        <div class="sub-title">这会决定你的勋章样式和耗材算法</div>
+        <div class="grid">
+            <div class="industry-btn" onclick="selectIndustry('nail', this)">💅<br>美甲美睫</div>
+            <div class="industry-btn" onclick="selectIndustry('food', this)">🌭<br>餐饮摆摊</div>
+            <div class="industry-btn" onclick="selectIndustry('cloth', this)">👗<br>服装零售</div>
+            <div class="industry-btn" onclick="selectIndustry('other', this)">🛍️<br>其他实体</div>
         </div>
-        <span id="score-val" style="font-weight: bold; color: var(--duo-green);">0%</span>
-    </div>
+        <button class="btn btn-green" style="margin-top: 30px;" onclick="goPage('page-fixed')">下一步</button>
+    </section>
 
-    <div class="duo-character">
-        <div class="owl" id="owl-face">🤔</div>
-        <div class="speech-bubble" id="owl-msg">还没记账？房东可不会等你！</div>
-    </div>
-
-    <div class="card" id="config-card">
-        <div style="display: flex; gap: 10px;">
-            <button class="btn btn-blue" style="flex:1" onclick="switchIndustry('nail')">💅 美甲</button>
-            <button class="btn btn-blue" style="flex:1" onclick="switchIndustry('food')">🌭 摆摊</button>
+    <section id="page-fixed" class="page">
+        <div class="title">经营成本配置</div>
+        <div class="sub-title">严厉会计模式：算出你睁眼就欠多少钱</div>
+        <div class="card">
+            <label>每月房租 (¥)</label>
+            <input type="number" id="input-rent" placeholder="如 3000" style="width:100%; margin:10px 0 20px;">
+            <label>杂费/人工/折旧 (¥)</label>
+            <input type="number" id="input-other" placeholder="如 1000" style="width:100%; margin:10px 0;">
         </div>
+        <button class="btn btn-green" onclick="saveFixedCosts()">保存并进入主场</button>
+    </section>
+
+    <section id="page-main" class="page">
+        <div class="top-bar">
+            <span id="main-owl" style="font-size: 30px;">🦉</span>
+            <div class="prog-bg"><div id="main-prog" class="prog-fill"></div></div>
+            <span id="main-score" style="font-weight: bold; color: var(--duo-green);">0%</span>
+        </div>
+
+        <div class="card" id="status-bubble">
+            <b>加油！</b> 今日目标还差 ¥<span id="gap-val">---</span>
+        </div>
+
+        <div class="grid" style="margin-bottom: 15px;">
+            <button class="btn btn-green" onclick="showInput('income')">💰 记收入</button>
+            <button class="btn btn-blue" onclick="showInput('purchase')">📦 记采购</button>
+        </div>
+
+        <div class="grid">
+            <button class="btn btn-blue" style="background:#fff; color:var(--duo-blue);" onclick="toggleModal('modal-badge')">🏅 勋章墙</button>
+            <button class="btn btn-blue" style="background:#fff; color:var(--duo-blue);" onclick="toggleModal('modal-stats')">📊 报表</button>
+        </div>
+
+        <div id="action-area" style="margin-top: 20px; display: none;" class="card">
+            <h4 id="action-title"></h4>
+            <div id="action-content"></div>
+            <button class="btn btn-green" id="action-confirm" style="margin-top:10px;">确认提交</button>
+        </div>
+    </section>
+
+    <div id="modal-badge" class="modal">
+        <div class="title">成就勋章墙</div>
+        <div class="grid" style="width: 100%; margin-top: 30px;" id="badge-container">
+            </div>
+        <button class="btn btn-blue" style="margin-top: 40px;" onclick="toggleModal('modal-badge')">返回</button>
     </div>
 
-    <div class="card">
-        <p style="margin-top:0; font-weight: bold; color: #afafaf;">喂入采购截图文本</p>
-        <textarea id="ocr-data" rows="2">实付: ¥500 数量: 100张</textarea>
-        <button class="btn btn-green" style="margin-top:15px;" onclick="handleVision()">同步成本数据</button>
+    <div id="modal-stats" class="modal">
+        <div class="title">经营深度分析</div>
+        <div class="card" style="width: 100%;">
+            <p>行业对比：高于同期 <span style="color:var(--duo-green); font-weight:bold;">12%</span></p>
+            <p>目前纯利：¥<span id="stat-profit">0.00</span></p>
+            <p>成本占比：<span id="stat-cost-ratio">0%</span></p>
+        </div>
+        <button class="btn btn-blue" style="margin-top: 40px;" onclick="toggleModal('modal-stats')">返回</button>
     </div>
 
-    <div class="card">
-        <p style="margin-top:0; font-weight: bold; color: #afafaf;">录入今日收入</p>
-        <input type="number" id="revenue-val" placeholder="¥ 0.00">
-        <button class="btn btn-green" style="margin-top:15px;" onclick="handleSale()">完成一笔成交！</button>
-    </div>
+    <script src="config.js"></script>
+    <script src="vision.js"></script>
+    <script src="accounting.js"></script>
+    <script src="alert.js"></script>
+    <script src="achievement.js"></script>
 
-    <div id="alert-zone"></div>
-</div>
-
-<script src="config.js"></script>
-<script src="vision.js"></script>
-<script src="accounting.js"></script>
-<script src="alert.js"></script>
-
-<script>
-
-    
-    // 逻辑更新：每次操作后运行成就检查
-    function updateBadgeWall() {
-        const earned = JSON.parse(localStorage.getItem('earned_badges')) || [];
-        const spans = document.querySelectorAll('#badge-wall span');
-        const badgeIds = ['first_blood', 'profitable_king', 'smart_buyer', 'anti_procrastination'];
+    <script>
+        let currentIndustry = 'nail';
         
-        spans.forEach((span, index) => {
-            if (earned.includes(badgeIds[index])) {
-                span.style.filter = 'none';
-                span.style.opacity = '1';
+        function goPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        function selectIndustry(type, el) {
+            currentIndustry = type;
+            document.querySelectorAll('.industry-btn').forEach(b => b.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+
+        function saveFixedCosts() {
+            const rent = parseFloat(document.getElementById('input-rent').value) || 0;
+            const other = parseFloat(document.getElementById('input-other').value) || 0;
+            const daily = ((rent + other) / 30).toFixed(2);
+            localStorage.setItem('dailyTarget', daily);
+            localStorage.setItem('industry_type', currentIndustry);
+            initMainPage();
+            goPage('page-main');
+        }
+
+        function initMainPage() {
+            const target = localStorage.getItem('dailyTarget');
+            document.getElementById('gap-val').innerText = target;
+            updateProgress(0);
+        }
+
+        function updateProgress(rev) {
+            const target = parseFloat(localStorage.getItem('dailyTarget')) || 1;
+            const percent = Math.min((rev / target) * 100, 100);
+            document.getElementById('main-prog').style.width = percent + '%';
+            document.getElementById('main-score').innerText = Math.floor(percent) + '%';
+        }
+
+        function showInput(type) {
+            const area = document.getElementById('action-area');
+            const content = document.getElementById('action-content');
+            area.style.display = 'block';
+            
+            if(type === 'income') {
+                document.getElementById('action-title').innerText = "今日成交录入";
+                content.innerHTML = `<input type="number" id="val-income" placeholder="输入金额 ¥">`;
+                document.getElementById('action-confirm').onclick = () => {
+                    const v = parseFloat(document.getElementById('val-income').value);
+                    updateProgress(v);
+                    area.style.display = 'none';
+                };
+            } else {
+                document.getElementById('action-title').innerText = "采购截图提取";
+                content.innerHTML = `<textarea id="val-ocr" placeholder="粘贴拼多多/淘宝截图文字..."></textarea>`;
+                document.getElementById('action-confirm').onclick = async () => {
+                    const text = document.getElementById('val-ocr').value;
+                    const res = await UniversalVision.parseAnyReceipt(text);
+                    AccountingEngine.syncPurchase(res.itemName, res.unitCost, res.quantity);
+                    alert(`提取成功：${res.itemName}`);
+                    area.style.display = 'none';
+                };
             }
-        });
-    }
-
-    // 在 handleSale 结尾处调用
-    // AchievementSystem.check({ totalSales: 10, streak: 3, ... });
-    // updateBadgeWall();
-
-
-    // UI 交互胶水代码
-    function switchIndustry(type) {
-        IndustryAdapter.setIndustry(type);
-        updateOwl("🥳", `已切换到${IndustryAdapter.getCurrent().name}模式！`);
-    }
-
-    async function handleVision() {
-        const text = document.getElementById('ocr-data').value;
-        const res = await UniversalVision.parseAnyReceipt(text);
-        AccountingEngine.syncPurchase(res.itemName, res.unitCost, res.quantity);
-        updateOwl("🤩", `哇！识别到了${res.quantity}件${res.itemName}，每件才¥${res.unitCost}？太会买了！`);
-    }
-
-    function handleSale() {
-        const rev = parseFloat(document.getElementById('revenue-val').value) || 0;
-        const lib = JSON.parse(localStorage.getItem('cost_lib')) || {};
-        const firstItem = Object.keys(lib)[0] || "通用耗材";
-        
-        const res = AccountingEngine.calculateProfit(rev, firstItem);
-        
-        // 更新进度条 (以日目标为基准)
-        const dailyTarget = parseFloat(localStorage.getItem('dailyTarget')) || 333;
-        const progress = Math.min((rev / dailyTarget) * 100, 100);
-        document.getElementById('main-progress').style.width = progress + '%';
-        document.getElementById('score-val').innerText = Math.floor(progress) + '%';
-
-        // 状态更新
-        if (progress < 100) {
-            updateOwl("😒", `只有 ${Math.floor(progress)}%？今天的房租还没赚出来哦！`);
-        } else {
-            updateOwl("👑", `100%！剩下的全是利润，去买杯奶茶吧！`);
         }
 
-        // 检查库存预警
-        const alertHtml = AlertSystem.check(firstItem, res.remainingStock, lib[firstItem]?.total || 100);
-        document.getElementById('alert-area')?.remove(); // 清理旧预警
-        if(alertHtml) {
-            const div = document.createElement('div');
-            div.id = 'alert-area';
-            div.innerHTML = alertHtml;
-            document.body.appendChild(div);
-            updateOwl("😱", "大事不好！耗材快用光了，快去进货！");
+        function toggleModal(id) {
+            const m = document.getElementById(id);
+            m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
         }
-    }
-
-    function updateOwl(face, msg) {
-        document.getElementById('owl-face').innerText = face;
-        document.getElementById('owl-msg').innerText = msg;
-    }
-</script>
-
+    </script>
 </body>
 </html>
