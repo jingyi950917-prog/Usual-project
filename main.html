@@ -1,50 +1,183 @@
-/**
- * 模块：行业适配器配置中心 (Config V3.0)
- * 功能：定义不同行业的视觉规范、计量单位及核心算法差异
- */
-const IndustryAdapter = {
-    registry: {
-        "nail": { 
-            name: "美甲美睫", 
-            theme: "#ff85a2", 
-            icon: "💅", 
-            unit: "位顾客",
-            slogan: "让美力变现 ✨" 
-        },
-        "food": { 
-            name: "小吃摆摊", 
-            theme: "#ffb347", 
-            icon: "🌭", 
-            unit: "份餐点",
-            slogan: "人间烟火气，最抚主理人 🍳"
-        },
-        "retail": { 
-            name: "服装零售", 
-            theme: "#4facfe", 
-            icon: "👗", 
-            unit: "件衣服",
-            slogan: "穿出风格，赚到自由 🛍️"
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>水獭主理人能量站</title>
+    <script src="config.js"></script>
+    <style>
+        :root { 
+            --primary-pink: #ff85a2; /* 初始默认值，会被 config.js 动态覆盖 */
+            --bg: #fff9fa; 
+            --success-green: #58cc02; 
         }
-    },
+        body { font-family: 'PingFang SC', sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .app-container { width: 340px; background: #fff; border-radius: 35px; box-shadow: 0 20px 40px rgba(255,133,162,0.1); padding: 25px; text-align: center; position: relative; }
+        
+        .top-nav { display: flex; justify-content: space-between; font-size: 12px; color: #ccc; margin-bottom: 10px; }
+        
+        #emoji-status { font-size: 90px; margin: 15px 0; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; }
+        .pulse { animation: pulse-animation 0.8s infinite; }
+        @keyframes pulse-animation { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
 
-    // 获取当前激活的行业配置
-    getCurrent() {
-        const type = localStorage.getItem('industry_type') || 'nail';
-        return this.registry[type] || this.registry['nail'];
-    },
+        .health-score { font-size: 50px; font-weight: bold; color: var(--primary-pink); line-height: 1; transition: 0.3s; }
+        .health-label { color: #999; font-size: 12px; margin-top: 5px; }
+        
+        .input-card { background: #fef0f3; padding: 20px; border-radius: 25px; margin: 20px 0; position: relative; }
+        input { border: none; background: transparent; font-size: 28px; width: 100%; text-align: center; color: var(--primary-pink); border-bottom: 2px solid #ffdae3; outline: none; padding-bottom: 5px; }
+        input::placeholder { color: #ffdae3; font-size: 20px; }
+        
+        .btn-main { background: var(--primary-pink); color: white; border: none; padding: 16px; border-radius: 50px; font-size: 18px; width: 100%; cursor: pointer; font-weight: bold; box-shadow: 0 6px #ffdae3; transition: 0.1s; }
+        .btn-main:active { transform: translateY(4px); box-shadow: 0 2px #ffdae3; }
+        
+        .badge-wall { display: flex; justify-content: center; gap: 12px; margin-top: 20px; font-size: 22px; background: #fcfcfc; padding: 10px; border-radius: 15px; }
+        .badge-wall span { filter: grayscale(1); opacity: 0.15; transition: 0.5s; cursor: help; }
+        .active-badge { filter: none !important; opacity: 1 !important; transform: scale(1.1); }
+        
+        .ai-link { font-size: 12px; color: #1cb0f6; margin-top: 20px; cursor: pointer; display: block; font-weight: bold; text-decoration: none; }
+        #profit-tip { font-size: 12px; color: var(--success-green); margin-top: 8px; font-weight: bold; height: 18px; }
+    </style>
+</head>
+<body>
 
-    // 切换行业并更新主题色
-    setIndustry(type) {
-        if (this.registry[type]) {
-            localStorage.setItem('industry_type', type);
-            // 立即更新 CSS 变量，实现全应用换肤
-            document.documentElement.style.setProperty('--primary-pink', this.registry[type].theme);
+<div class="app-container">
+    <div class="top-nav">
+        <span id="date-display">2026/01/31</span>
+        <span onclick="resetDay()" style="cursor:pointer">🔄 重置今日</span>
+    </div>
+    
+    <div id="industry-logo" style="font-size: 13px; color: var(--primary-pink); font-weight: bold; letter-spacing: 1px;">🦦 OTTER STATION</div>
+    
+    <div id="health-score" class="health-score">0%</div>
+    <div class="health-label">今日目标达成率</div>
+    
+    <div id="emoji-status" onclick="this.classList.toggle('pulse')">😴</div>
+    
+    <div class="input-card">
+        <input type="number" id="revenue-input" inputmode="decimal" placeholder="¥ 0.00">
+        <div id="unit-tip" style="font-size: 12px; color: #ccabb3; margin-top: 10px;">输入成交金额点下方记录</div>
+        <div id="profit-tip"></div>
+    </div>
+
+    <button class="btn-main" id="record-btn" onclick="record()">记录成交</button>
+    
+    <a href="ai_extract.html" class="ai-link">✨ AI 识别采购截图 (同步耗材库)</a>
+
+    <div class="badge-wall" id="badges">
+        <span id="badge-first_blood" title="首单入账">💰</span>
+        <span id="badge-profitable_king" title="盈利王者">👑</span>
+        <span id="badge-smart_buyer" title="精明猎手">🦊</span>
+        <span id="badge-anti_procrastination" title="拒绝拖延">🔥</span>
+    </div>
+</div>
+
+<script src="accounting.js"></script>
+<script src="achievement.js"></script>
+
+<script>
+    // 1. 路由与日期检查
+    if (localStorage.getItem('hasSetup') !== 'true') window.location.href = 'setup.html';
+
+    function checkDate() {
+        const today = new Date().toLocaleDateString();
+        const lastSavedDate = localStorage.getItem('last_active_date');
+        if (lastSavedDate !== today) {
+            localStorage.setItem('todayRev', '0');
+            localStorage.setItem('last_active_date', today);
+        }
+        document.getElementById('date-display').innerText = today;
+    }
+
+    // 2. 行业适配应用
+    function applyIndustry() {
+        const config = IndustryAdapter.getCurrent();
+        
+        // 更新主题颜色
+        document.documentElement.style.setProperty('--primary-pink', config.theme);
+        
+        // 更新 UI 文案
+        document.getElementById('industry-logo').innerHTML = `🦦 ${config.icon} ${config.name.toUpperCase()} STATION`;
+        document.getElementById('unit-tip').innerText = `今天接待了新的${config.unit}吗？`;
+        
+        // 更新按钮投影颜色同步主题
+        document.getElementById('record-btn').style.boxShadow = `0 6px ${config.theme}44`; // 增加透明度
+    }
+
+    // 3. 初始化数据
+    const DAILY_COST = parseFloat(localStorage.getItem('dailyCost')) || 1;
+    let totalRev = parseFloat(localStorage.getItem('todayRev')) || 0;
+
+    // 4. 记录逻辑
+    function record() {
+        const input = document.getElementById('revenue-input');
+        const val = parseFloat(input.value);
+        
+        if (val && val > 0) {
+            // 调用会计引擎
+            const costLib = JSON.parse(localStorage.getItem('cost_lib')) || {};
+            const firstItemName = Object.keys(costLib)[0] || null; 
+            const result = AccountingEngine.calculateProfit(val, firstItemName);
+            
+            totalRev += val;
+            localStorage.setItem('todayRev', totalRev);
+            
+            showProfitFeedback(result.netProfit, result.materialCost);
+            
+            input.value = '';
+            render();
+
+            // 联动勋章
+            if (typeof AchievementSystem !== 'undefined') {
+                AchievementSystem.check();
+            }
         }
     }
-};
 
-// 立即执行一次主题初始化，防止页面闪烁
-(function initTheme() {
-    const config = IndustryAdapter.getCurrent();
-    document.documentElement.style.setProperty('--primary-pink', config.theme);
-})();
+    function showProfitFeedback(net, mat) {
+        const tip = document.getElementById('profit-tip');
+        tip.innerText = `✨ 纯赚 ¥${net} (物料成本 ¥${mat})`;
+        setTimeout(() => { tip.innerText = ""; }, 4000);
+    }
+
+    // 5. 渲染
+    function render() {
+        const score = Math.floor((totalRev / DAILY_COST) * 100);
+        const scoreEl = document.getElementById('health-score');
+        const emoji = document.getElementById('emoji-status');
+        
+        scoreEl.innerText = score + '%';
+        
+        if (score >= 100) scoreEl.style.color = "var(--success-green)";
+        else scoreEl.style.color = "var(--primary-pink)";
+
+        // 水獭形态
+        if(score === 0) emoji.innerText = "😴";
+        else if(score < 50) emoji.innerText = "🦦";
+        else if(score < 100) emoji.innerText = "🌊";
+        else if(score < 150) emoji.innerText = "🍤";
+        else emoji.innerText = "💎";
+
+        // 勋章状态同步
+        const earned = JSON.parse(localStorage.getItem('earned_badges')) || [];
+        earned.forEach(id => {
+            const el = document.getElementById('badge-' + id);
+            if (el) el.classList.add('active-badge');
+        });
+    }
+
+    function resetDay() {
+        if(confirm("确定要重置今日数据吗？")) {
+            localStorage.setItem('todayRev', '0');
+            location.reload();
+        }
+    }
+    
+    // 立即执行初始化
+    checkDate();
+    applyIndustry(); 
+    window.onload = render;
+</script>
+</body>
+</html>
