@@ -7,37 +7,27 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>水獭主理人能量站</title>
     <script src="config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { 
-            --primary-pink: #ff85a2; /* 初始默认值，会被 config.js 动态覆盖 */
-            --bg: #fff9fa; 
-            --success-green: #58cc02; 
-        }
+        :root { --primary-pink: #ff85a2; --bg: #fff9fa; --success-green: #58cc02; }
         body { font-family: 'PingFang SC', sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
         .app-container { width: 340px; background: #fff; border-radius: 35px; box-shadow: 0 20px 40px rgba(255,133,162,0.1); padding: 25px; text-align: center; position: relative; }
-        
         .top-nav { display: flex; justify-content: space-between; font-size: 12px; color: #ccc; margin-bottom: 10px; }
-        
         #emoji-status { font-size: 90px; margin: 15px 0; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; }
-        .pulse { animation: pulse-animation 0.8s infinite; }
-        @keyframes pulse-animation { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-
-        .health-score { font-size: 50px; font-weight: bold; color: var(--primary-pink); line-height: 1; transition: 0.3s; }
+        .health-score { font-size: 50px; font-weight: bold; color: var(--primary-pink); line-height: 1; }
         .health-label { color: #999; font-size: 12px; margin-top: 5px; }
-        
-        .input-card { background: #fef0f3; padding: 20px; border-radius: 25px; margin: 20px 0; position: relative; }
-        input { border: none; background: transparent; font-size: 28px; width: 100%; text-align: center; color: var(--primary-pink); border-bottom: 2px solid #ffdae3; outline: none; padding-bottom: 5px; }
-        input::placeholder { color: #ffdae3; font-size: 20px; }
-        
-        .btn-main { background: var(--primary-pink); color: white; border: none; padding: 16px; border-radius: 50px; font-size: 18px; width: 100%; cursor: pointer; font-weight: bold; box-shadow: 0 6px #ffdae3; transition: 0.1s; }
-        .btn-main:active { transform: translateY(4px); box-shadow: 0 2px #ffdae3; }
-        
+        .input-card { background: #fef0f3; padding: 20px; border-radius: 25px; margin: 20px 0; }
+        input { border: none; background: transparent; font-size: 28px; width: 100%; text-align: center; color: var(--primary-pink); border-bottom: 2px solid #ffdae3; outline: none; }
+        .btn-main { background: var(--primary-pink); color: white; border: none; padding: 16px; border-radius: 50px; font-size: 18px; width: 100%; cursor: pointer; font-weight: bold; box-shadow: 0 6px #ffdae3; }
         .badge-wall { display: flex; justify-content: center; gap: 12px; margin-top: 20px; font-size: 22px; background: #fcfcfc; padding: 10px; border-radius: 15px; }
-        .badge-wall span { filter: grayscale(1); opacity: 0.15; transition: 0.5s; cursor: help; }
+        .badge-wall span { filter: grayscale(1); opacity: 0.15; transition: 0.5s; }
         .active-badge { filter: none !important; opacity: 1 !important; transform: scale(1.1); }
-        
-        .ai-link { font-size: 12px; color: #1cb0f6; margin-top: 20px; cursor: pointer; display: block; font-weight: bold; text-decoration: none; }
         #profit-tip { font-size: 12px; color: var(--success-green); margin-top: 8px; font-weight: bold; height: 18px; }
+        
+        /* 报表弹窗 */
+        #report-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:2000; padding:25px; box-sizing:border-box; overflow-y:auto; animation: slideUp 0.4s ease; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .history-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -45,137 +35,140 @@
 <div class="app-container">
     <div class="top-nav">
         <span id="date-display">2026/01/31</span>
-        <span onclick="resetDay()" style="cursor:pointer">🔄 重置今日</span>
+        <span onclick="toggleReport()" style="cursor:pointer">📊 报表</span>
     </div>
     
-    <div id="industry-logo" style="font-size: 13px; color: var(--primary-pink); font-weight: bold; letter-spacing: 1px;">🦦 OTTER STATION</div>
-    
+    <div id="industry-logo" style="font-size: 13px; color: var(--primary-pink); font-weight: bold;">🦦 OTTER STATION</div>
     <div id="health-score" class="health-score">0%</div>
     <div class="health-label">今日目标达成率</div>
-    
-    <div id="emoji-status" onclick="this.classList.toggle('pulse')">😴</div>
+    <div id="emoji-status">😴</div>
     
     <div class="input-card">
         <input type="number" id="revenue-input" inputmode="decimal" placeholder="¥ 0.00">
-        <div id="unit-tip" style="font-size: 12px; color: #ccabb3; margin-top: 10px;">输入成交金额点下方记录</div>
+        <div id="unit-tip" style="font-size: 12px; color: #ccabb3; margin-top: 10px;">记录成交金额</div>
         <div id="profit-tip"></div>
     </div>
 
     <button class="btn-main" id="record-btn" onclick="record()">记录成交</button>
-    
-    <a href="ai_extract.html" class="ai-link">✨ AI 识别采购截图 (同步耗材库)</a>
+    <a href="ai_extract.html" class="ai-link" style="display:block; margin-top:15px; font-size:12px; color:#1cb0f6; text-decoration:none;">✨ 识别采购截图</a>
 
     <div class="badge-wall" id="badges">
-        <span id="badge-first_blood" title="首单入账">💰</span>
-        <span id="badge-profitable_king" title="盈利王者">👑</span>
-        <span id="badge-smart_buyer" title="精明猎手">🦊</span>
-        <span id="badge-anti_procrastination" title="拒绝拖延">🔥</span>
+        <span id="badge-first_blood">💰</span><span id="badge-profitable_king">👑</span><span id="badge-smart_buyer">🦊</span><span id="badge-anti_procrastination">🔥</span>
     </div>
+</div>
+
+<div id="report-modal">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="color:var(--primary-pink); margin:0;">经营趋势</h2>
+        <button onclick="toggleReport()" style="border:none; background:none; font-size:24px;">×</button>
+    </div>
+    <div style="margin:20px 0;"><canvas id="trendChart"></canvas></div>
+    <div id="history-list"></div>
+    <button class="btn-main" style="margin-top:20px; font-size:14px;" onclick="exportCSV()">导出 CSV 报表</button>
 </div>
 
 <script src="accounting.js"></script>
 <script src="achievement.js"></script>
 
 <script>
-    // 1. 路由与日期检查
-    if (localStorage.getItem('hasSetup') !== 'true') window.location.href = 'setup.html';
+    if (localStorage.getItem('hasSetup') !== 'true') window.location.href = 'index.html';
 
-    function checkDate() {
-        const today = new Date().toLocaleDateString();
-        const lastSavedDate = localStorage.getItem('last_active_date');
-        if (lastSavedDate !== today) {
-            localStorage.setItem('todayRev', '0');
-            localStorage.setItem('last_active_date', today);
-        }
-        document.getElementById('date-display').innerText = today;
-    }
-
-    // 2. 行业适配应用
-    function applyIndustry() {
-        const config = IndustryAdapter.getCurrent();
-        
-        // 更新主题颜色
-        document.documentElement.style.setProperty('--primary-pink', config.theme);
-        
-        // 更新 UI 文案
-        document.getElementById('industry-logo').innerHTML = `🦦 ${config.icon} ${config.name.toUpperCase()} STATION`;
-        document.getElementById('unit-tip').innerText = `今天接待了新的${config.unit}吗？`;
-        
-        // 更新按钮投影颜色同步主题
-        document.getElementById('record-btn').style.boxShadow = `0 6px ${config.theme}44`; // 增加透明度
-    }
-
-    // 3. 初始化数据
     const DAILY_COST = parseFloat(localStorage.getItem('dailyCost')) || 1;
     let totalRev = parseFloat(localStorage.getItem('todayRev')) || 0;
 
-    // 4. 记录逻辑
+    function applyIndustry() {
+        const config = IndustryAdapter.getCurrent();
+        document.documentElement.style.setProperty('--primary-pink', config.theme);
+        document.getElementById('industry-logo').innerHTML = `🦦 ${config.icon} ${config.name.toUpperCase()} STATION`;
+        document.getElementById('unit-tip').innerText = `今天接待了新的${config.unit}吗？`;
+        document.getElementById('record-btn').style.boxShadow = `0 6px ${config.theme}44`;
+    }
+
     function record() {
         const input = document.getElementById('revenue-input');
         const val = parseFloat(input.value);
-        
-        if (val && val > 0) {
-            // 调用会计引擎
+        if (val > 0) {
             const costLib = JSON.parse(localStorage.getItem('cost_lib')) || {};
             const firstItemName = Object.keys(costLib)[0] || null; 
             const result = AccountingEngine.calculateProfit(val, firstItemName);
             
             totalRev += val;
             localStorage.setItem('todayRev', totalRev);
-            
+            AccountingEngine.saveDailySnapshot(totalRev); // 自动存入历史
+
             showProfitFeedback(result.netProfit, result.materialCost);
-            
             input.value = '';
             render();
-
-            // 联动勋章
-            if (typeof AchievementSystem !== 'undefined') {
-                AchievementSystem.check();
-            }
+            if (typeof AchievementSystem !== 'undefined') AchievementSystem.check();
         }
     }
 
     function showProfitFeedback(net, mat) {
-        const tip = document.getElementById('profit-tip');
-        tip.innerText = `✨ 纯赚 ¥${net} (物料成本 ¥${mat})`;
-        setTimeout(() => { tip.innerText = ""; }, 4000);
+        document.getElementById('profit-tip').innerText = `✨ 纯赚 ¥${net} (物料 ¥${mat})`;
+        setTimeout(() => { document.getElementById('profit-tip').innerText = ""; }, 3000);
     }
 
-    // 5. 渲染
-    function render() {
-        const score = Math.floor((totalRev / DAILY_COST) * 100);
-        const scoreEl = document.getElementById('health-score');
-        const emoji = document.getElementById('emoji-status');
-        
-        scoreEl.innerText = score + '%';
-        
-        if (score >= 100) scoreEl.style.color = "var(--success-green)";
-        else scoreEl.style.color = "var(--primary-pink)";
+    function toggleReport() {
+        const modal = document.getElementById('report-modal');
+        modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
+        if(modal.style.display === 'block') { renderChart(); renderHistoryList(); }
+    }
 
-        // 水獭形态
-        if(score === 0) emoji.innerText = "😴";
-        else if(score < 50) emoji.innerText = "🦦";
-        else if(score < 100) emoji.innerText = "🌊";
-        else if(score < 150) emoji.innerText = "🍤";
-        else emoji.innerText = "💎";
-
-        // 勋章状态同步
-        const earned = JSON.parse(localStorage.getItem('earned_badges')) || [];
-        earned.forEach(id => {
-            const el = document.getElementById('badge-' + id);
-            if (el) el.classList.add('active-badge');
+    function renderChart() {
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        const trend = AccountingEngine.getTrendData();
+        if (window.myChart) window.myChart.destroy();
+        window.myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: trend.labels,
+                datasets: [{ label: '营收', data: trend.data, borderColor: '#ff85a2', tension: 0.4, fill: true, backgroundColor: 'rgba(255,133,162,0.1)' }]
+            },
+            options: { plugins: { legend: { display: false } } }
         });
     }
 
-    function resetDay() {
-        if(confirm("确定要重置今日数据吗？")) {
-            localStorage.setItem('todayRev', '0');
-            location.reload();
-        }
+    function renderHistoryList() {
+        const history = JSON.parse(localStorage.getItem('revenue_history')) || {};
+        let html = '<h3 style="font-size:15px; margin:20px 0 10px;">历史明细</h3>';
+        Object.keys(history).reverse().forEach(date => {
+            html += `<div class="history-item"><span>${date}</span><strong>¥${history[date].revenue} (${history[date].achievement}%)</strong></div>`;
+        });
+        document.getElementById('history-list').innerHTML = html;
     }
-    
-    // 立即执行初始化
-    checkDate();
+
+    function exportCSV() {
+        const history = JSON.parse(localStorage.getItem('revenue_history')) || {};
+        let csv = "日期,营收,纯利,达成率\n";
+        Object.keys(history).forEach(d => csv += `${d},${history[d].revenue},${history[d].profit},${history[d].achievement}%\n`);
+        const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `otter_report_${new Date().toLocaleDateString()}.csv`;
+        link.click();
+    }
+
+    function render() {
+        const score = Math.floor((totalRev / DAILY_COST) * 100);
+        document.getElementById('health-score').innerText = score + '%';
+        document.getElementById('health-score').style.color = score >= 100 ? "var(--success-green)" : "var(--primary-pink)";
+        const emoji = document.getElementById('emoji-status');
+        if(score === 0) emoji.innerText = "😴";
+        else if(score < 100) emoji.innerText = "🦦";
+        else if(score < 200) emoji.innerText = "🍤";
+        else emoji.innerText = "💎";
+
+        const earned = JSON.parse(localStorage.getItem('earned_badges')) || [];
+        earned.forEach(id => { if(document.getElementById('badge-'+id)) document.getElementById('badge-'+id).classList.add('active-badge'); });
+    }
+
+    // 初始化
+    const today = new Date().toLocaleDateString();
+    if (localStorage.getItem('last_active_date') !== today) {
+        localStorage.setItem('todayRev', '0');
+        localStorage.setItem('last_active_date', today);
+    }
+    document.getElementById('date-display').innerText = today;
     applyIndustry(); 
     window.onload = render;
 </script>
