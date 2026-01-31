@@ -2,112 +2,234 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>能量基石 - Setup</title>
+    <title>水獭主理人能量站</title>
     <script src="config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --main-color: #ff85a2; --bg: #fff9fa; }
+        :root { --primary-pink: #ff85a2; --bg: #fff9fa; --success-green: #58cc02; }
         body { font-family: 'PingFang SC', sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .card { width: 340px; background: white; border-radius: 30px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; }
-        .logo { font-size: 60px; margin-bottom: 10px; transition: 0.3s; }
-        .progress { height: 6px; background: #eee; border-radius: 3px; margin: 20px 0; overflow: hidden; }
-        #bar { height: 100%; width: 20%; background: var(--main-color); transition: 0.5s; }
-        .step { display: none; animation: fadeIn 0.4s; text-align: left; }
-        .active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        h2 { color: var(--main-color); font-size: 20px; margin-top: 0; }
-        p { font-size: 13px; color: #888; line-height: 1.6; }
-        .industry-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 20px 0; }
-        .industry-item { border: 2px solid #eee; border-radius: 15px; padding: 10px; text-align: center; cursor: pointer; transition: 0.3s; }
-        .industry-item.selected { border-color: var(--main-color); background: #fdf0f2; }
-        .industry-item span { font-size: 24px; display: block; }
-        .industry-item label { font-size: 11px; color: #666; font-weight: bold; }
-        input { width: 100%; border: none; background: #fdf0f2; padding: 15px; border-radius: 15px; font-size: 18px; margin: 15px 0; box-sizing: border-box; outline: none; color: var(--main-color); }
-        button { width: 100%; background: var(--main-color); color: white; border: none; padding: 15px; border-radius: 50px; font-size: 16px; cursor: pointer; font-weight: bold; margin-top: 10px; }
-        .back-link { display: block; text-align: center; font-size: 12px; color: #ccc; margin-top: 15px; text-decoration: none; cursor: pointer; }
+        .app-container { width: 340px; background: #fff; border-radius: 35px; box-shadow: 0 20px 40px rgba(255,133,162,0.1); padding: 25px; text-align: center; position: relative; }
+        .top-nav { display: flex; justify-content: space-between; font-size: 11px; color: #ccc; margin-bottom: 10px; }
+        #emoji-status { font-size: 90px; margin: 15px 0; transition: 0.5s; cursor: pointer; }
+        .health-score { font-size: 50px; font-weight: bold; color: var(--primary-pink); line-height: 1; }
+        .health-label { color: #999; font-size: 12px; margin-top: 5px; }
+        .input-card { background: #fef0f3; padding: 20px; border-radius: 25px; margin: 20px 0; }
+        input { border: none; background: transparent; font-size: 28px; width: 100%; text-align: center; color: var(--primary-pink); border-bottom: 2px solid #ffdae3; outline: none; }
+        .btn-main { background: var(--primary-pink); color: white; border: none; padding: 16px; border-radius: 50px; font-size: 18px; width: 100%; cursor: pointer; font-weight: bold; box-shadow: 0 6px #ffdae3; transition: 0.1s; }
+        .btn-main:active { transform: translateY(2px); box-shadow: 0 3px #ffdae3; }
+        .badge-wall { display: flex; justify-content: center; gap: 12px; margin-top: 20px; font-size: 22px; background: #fcfcfc; padding: 10px; border-radius: 15px; }
+        .badge-wall span { filter: grayscale(1); opacity: 0.15; }
+        .active-badge { filter: none !important; opacity: 1 !important; transform: scale(1.1); }
+        #profit-tip { font-size: 12px; color: var(--success-green); margin-top: 8px; font-weight: bold; height: 18px; }
+        .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; justify-content:center; align-items:center; }
+        #report-modal { background:white; width:100%; height:100%; padding:25px; box-sizing:border-box; overflow-y:auto; animation: slideUp 0.4s ease; display:none; position:fixed; top:0; left:0; z-index:2500; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .history-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px dotted #eee; font-size: 14px; }
+        .forecast-card { background: #f8f9ff; padding: 15px; border-radius: 20px; margin: 15px 0; border-left: 5px solid #4facfe; text-align: left; }
+        .roi-bar-container { height: 10px; background: #eee; border-radius: 5px; margin: 10px 0; overflow: hidden; }
+        #roi-progress { height: 100%; background: var(--success-green); width: 0%; transition: 1s; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <div class="logo" id="main-logo">🦦</div>
-        <div class="progress"><div id="bar"></div></div>
-        
-        <div class="step active" id="s0">
-            <h2>🏷️ 选择行业身份</h2>
-            <div class="industry-grid" id="industry-selector">
-                <div class="industry-item selected" onclick="selectType('nail', this)"><span>💅</span><label>美甲美睫</label></div>
-                <div class="industry-item" onclick="selectType('food', this)"><span>🌭</span><label>小吃摆摊</label></div>
-                <div class="industry-item" onclick="selectType('retail', this)"><span>👗</span><label>服装零售</label></div>
-            </div>
-            <button onclick="move(1)">确认身份</button>
-        </div>
 
-        <div class="step" id="s1">
-            <h2>🏠 房租与物业</h2>
-            <p>房租是生存的第一道坎。请输入每月固定支出：</p>
-            <input type="number" id="rent" placeholder="¥ 5000">
-            <button onclick="move(2)">下一步</button>
-        </div>
-
-        <div class="step" id="s2">
-            <h2>👸 你的专属工资</h2>
-            <p>如果你不发工资，那你只是在自我剥削：</p>
-            <input type="number" id="salary" placeholder="¥ 8000">
-            <button onclick="move(3)">下一步</button>
-        </div>
-
-        <div class="step" id="s3">
-            <h2>🔋 杂费与折旧</h2>
-            <p>水电、材料折旧。算出日均运营成本：</p>
-            <input type="number" id="misc" placeholder="¥ 1000">
-            <button onclick="move(4)">最后一步</button>
-        </div>
-
-        <div class="step" id="s4">
-            <h2>🏗️ 初始投入成本</h2>
-            <p>装修、设备、加盟费等沉没成本：</p>
-            <input type="number" id="startup" placeholder="¥ 50000">
-            <button onclick="save()">完成并进入</button>
+<div class="app-container">
+    <div class="top-nav">
+        <span id="date-display"></span>
+        <div>
+            <span onclick="validateBoss('cost')" style="cursor:pointer; margin-right:12px;">🔒 成本</span>
+            <span onclick="validateBoss('report')" style="cursor:pointer">📊 报表</span>
         </div>
     </div>
+    <div id="industry-logo" style="font-size: 13px; color: var(--primary-pink); font-weight: bold;">🦦 STATION</div>
+    <div id="health-score" class="health-score">0%</div>
+    <div class="health-label">今日目标达成率</div>
+    <div id="emoji-status">😴</div>
+    <div class="input-card">
+        <input type="number" id="revenue-input" inputmode="decimal" placeholder="¥ 0.00">
+        <div id="unit-tip" style="font-size: 12px; color: #ccabb3; margin-top: 10px;">记录成交金额</div>
+        <div id="profit-tip"></div>
+    </div>
+    <button class="btn-main" onclick="record()">记录成交</button>
+    <div class="badge-wall" id="badges">
+        <span id="badge-first_blood">💰</span><span id="badge-profitable_king">👑</span><span id="badge-smart_buyer">🦊</span><span id="badge-anti_procrastination">🔥</span>
+    </div>
+</div>
 
-    <script>
-        if (localStorage.getItem('hasSetup') === 'true') window.location.href = 'main.html';
-        let selectedIndustry = 'nail';
+<div id="report-modal">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="color:var(--primary-pink); margin:0;">数据复盘</h2>
+        <button onclick="toggleReport()" style="border:none; background:none; font-size:28px;">×</button>
+    </div>
+    
+    <div class="forecast-card" style="border-left-color: var(--success-green);">
+        <div style="font-size: 11px; color: #666; font-weight: bold;">💰 回本进度 (总投入: ¥<span id="roi-total">0</span>)</div>
+        <div class="roi-bar-container"><div id="roi-progress"></div></div>
+        <div id="roi-desc" style="font-size: 10px; color: #999;">累计纯利 ¥0，还需 ¥0 回本</div>
+    </div>
 
-        function selectType(type, el) {
-            selectedIndustry = type;
-            document.querySelectorAll('.industry-item').forEach(item => item.classList.remove('selected'));
-            el.classList.add('selected');
-            const theme = IndustryAdapter.registry[type].theme;
-            document.documentElement.style.setProperty('--main-color', theme);
-            document.getElementById('main-logo').innerText = IndustryAdapter.registry[type].icon;
+    <div class="forecast-card">
+        <div style="font-size: 11px; color: #666; font-weight: bold;">🔮 月度利润预测</div>
+        <div id="forecast-val" style="font-size: 20px; color: #4facfe; font-weight: bold; margin-top: 5px;">计算中...</div>
+    </div>
+    
+    <canvas id="trendChart" style="margin:20px 0;"></canvas>
+    <div id="history-list"></div>
+    <button class="btn-main" style="margin-top:20px; font-size:14px;" onclick="exportCSV()">导出报表</button>
+</div>
+
+<div id="cost-detail-modal" class="modal-overlay">
+    <div style="background:white; padding:25px; border-radius:30px; width:300px;">
+        <h3 style="margin:0 0 15px; color:var(--primary-pink);">⚙️ 成本细项微调</h3>
+        <input type="number" id="edit-rent" placeholder="月房租"><br>
+        <input type="number" id="edit-salary" placeholder="月工资"><br>
+        <input type="number" id="edit-other" placeholder="月杂费"><br>
+        <input type="number" id="edit-startup" placeholder="初始总投入"><br>
+        <button class="btn-main" onclick="saveCostDetails()">保存</button>
+        <button class="btn-main" style="background:#ccc; margin-top:10px;" onclick="closeCostModal()">取消</button>
+    </div>
+</div>
+
+<script src="accounting.js"></script>
+<script src="achievement.js"></script>
+<script>
+    if (localStorage.getItem('hasSetup') !== 'true') window.location.href = 'index.html';
+
+    function validateBoss(target) {
+        if (prompt("请输入老板锁密码：") === "0000") {
+            if (target === 'cost') {
+                document.getElementById('edit-rent').value = localStorage.getItem('monthlyRent');
+                document.getElementById('edit-salary').value = localStorage.getItem('monthlySalary');
+                document.getElementById('edit-other').value = localStorage.getItem('monthlyOther');
+                document.getElementById('edit-startup').value = localStorage.getItem('startupCost');
+                document.getElementById('cost-detail-modal').style.display = 'flex';
+            } else toggleReport();
         }
+    }
 
-        function move(s) {
-            document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
-            document.getElementById('s' + s).classList.add('active');
-            document.getElementById('bar').style.width = ((s + 1) / 5 * 100) + '%';
-        }
+    function saveCostDetails() {
+        const r = parseFloat(document.getElementById('edit-rent').value) || 0;
+        const s = parseFloat(document.getElementById('edit-salary').value) || 0;
+        const o = parseFloat(document.getElementById('edit-other').value) || 0;
+        const st = parseFloat(document.getElementById('edit-startup').value) || 0;
+        localStorage.setItem('monthlyRent', r); localStorage.setItem('monthlySalary', s);
+        localStorage.setItem('monthlyOther', o); localStorage.setItem('startupCost', st);
+        localStorage.setItem('dailyCost', ((r+s+o)/30).toFixed(2));
+        location.reload();
+    }
 
-        function save() {
-            const rent = Number(document.getElementById('rent').value) || 0;
-            const salary = Number(document.getElementById('salary').value) || 0;
-            const misc = Number(document.getElementById('misc').value) || 0;
-            const startup = Number(document.getElementById('startup').value) || 0;
-            
-            localStorage.setItem('monthlyRent', rent);
-            localStorage.setItem('monthlySalary', salary);
-            localStorage.setItem('monthlyOther', misc);
-            localStorage.setItem('startupCost', startup);
-            localStorage.setItem('dailyCost', ((rent + salary + misc) / 30).toFixed(2));
-            localStorage.setItem('industry_type', selectedIndustry);
-            localStorage.setItem('hasSetup', 'true');
-            localStorage.setItem('todayRev', '0');
-            window.location.href = 'main.html';
+    function closeCostModal() { document.getElementById('cost-detail-modal').style.display = 'none'; }
+
+    function record() {
+        const input = document.getElementById('revenue-input');
+        const val = parseFloat(input.value);
+        if (val > 0) {
+            let totalRev = parseFloat(localStorage.getItem('todayRev')) || 0;
+            totalRev += val;
+            localStorage.setItem('todayRev', totalRev);
+            const result = AccountingEngine.calculateProfit(val);
+            AccountingEngine.saveDailySnapshot(totalRev);
+            document.getElementById('profit-tip').innerText = `✨ 纯赚 ¥${result.netProfit}`;
+            setTimeout(() => document.getElementById('profit-tip').innerText="", 3000);
+            input.value = ''; render();
         }
-    </script>
+    }
+
+    function toggleReport() {
+        const modal = document.getElementById('report-modal');
+        const isOpening = modal.style.display !== 'block';
+        modal.style.display = isOpening ? 'block' : 'none';
+        if(isOpening) { renderChart(); renderHistoryList(); calculateForecast(); calculateROI(); }
+    }
+
+    function calculateROI() {
+        const startup = parseFloat(localStorage.getItem('startupCost')) || 0;
+        const history = JSON.parse(localStorage.getItem('revenue_history')) || {};
+        const totalProfit = Object.values(history).reduce((sum, h) => sum + (parseFloat(h.profit) || 0), 0);
+        const progress = startup > 0 ? Math.min((totalProfit / startup) * 100, 100).toFixed(1) : 100;
+        document.getElementById('roi-total').innerText = startup;
+        document.getElementById('roi-progress').style.width = progress + '%';
+        document.getElementById('roi-desc').innerText = `累计纯利 ¥${totalProfit.toFixed(2)}，进度 ${progress}%，还需 ¥${Math.max(startup-totalProfit,0).toFixed(2)} 回本`;
+    }
+
+    // 复用你修正后的 CSV 导出逻辑
+    function exportCSV() {
+        const history = JSON.parse(localStorage.getItem('revenue_history')) || {};
+        const r = parseFloat(localStorage.getItem('monthlyRent')) || 0;
+        const s = parseFloat(localStorage.getItem('monthlySalary')) || 0;
+        const o = parseFloat(localStorage.getItem('monthlyOther')) || 0;
+        const dFixed = (r+s+o)/30;
+        let csv = "日期,总营收,毛利,达成率,日均房租,日均人工,日均杂费,绝对净利\n";
+        Object.keys(history).forEach(d => {
+            const h = history[d];
+            const net = parseFloat(h.profit) || 0;
+            const rev = parseFloat(h.revenue) || 0;
+            let gross = (net + dFixed).toFixed(2);
+            if(parseFloat(gross) > rev) gross = rev.toFixed(2);
+            csv += `${d},${rev},${gross},${h.achievement}%,${(r/30).toFixed(2)},${(s/30).toFixed(2)},${(o/30).toFixed(2)},${net}\n`;
+        });
+        const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `Precision_Report_${new Date().toLocaleDateString()}.csv`;
+        link.click();
+    }
+
+    function calculateForecast() {
+        const history = JSON.parse(localStorage.getItem('revenue_history')) || {};
+        const dates = Object.keys(history);
+        if (dates.length === 0) return;
+        const profits = dates.slice(-7).map(d => parseFloat(history[d].profit) || 0);
+        const avg = profits.reduce((a, b) => a + b, 0) / profits.length;
+        const daysLeft = 30 - new Date().getDate();
+        const total = Object.values(history).reduce((a,b)=>a+(parseFloat(b.profit)||0), 0) + (avg * daysLeft);
+        document.getElementById('forecast-val').innerText = `¥ ${total.toFixed(2)}`;
+    }
+
+    function renderChart() {
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        const trend = AccountingEngine.getTrendData();
+        if (window.myChart) window.myChart.destroy();
+        window.myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: trend.labels,
+                datasets: [{ label: '营收', data: trend.data, borderColor: '#ff85a2', tension: 0.4, fill: true, backgroundColor: 'rgba(255,133,162,0.1)' }]
+            },
+            options: { plugins: { legend: { display: false } } }
+        });
+    }
+
+    function renderHistoryList() {
+        const history = JSON.parse(localStorage.getItem('revenue_history')) || {};
+        let html = '<h3 style="font-size:14px; margin:20px 0 10px; color:#666;">历史账单</h3>';
+        Object.keys(history).reverse().forEach(date => {
+            html += `<div class="history-item"><span>${date}</span><strong>¥${history[date].revenue} (${history[date].achievement}%)</strong></div>`;
+        });
+        document.getElementById('history-list').innerHTML = html;
+    }
+
+    function render() {
+        const rev = parseFloat(localStorage.getItem('todayRev')) || 0;
+        const daily = parseFloat(localStorage.getItem('dailyCost')) || 1;
+        const score = Math.floor((rev / daily) * 100);
+        document.getElementById('health-score').innerText = score + '%';
+        document.getElementById('date-display').innerText = new Date().toLocaleDateString();
+        const emoji = document.getElementById('emoji-status');
+        if(score === 0) emoji.innerText = "😴";
+        else if(score < 100) emoji.innerText = "🦦";
+        else emoji.innerText = "💎";
+        const earned = JSON.parse(localStorage.getItem('earned_badges')) || [];
+        earned.forEach(id => { if(document.getElementById('badge-'+id)) document.getElementById('badge-'+id).classList.add('active-badge'); });
+    }
+
+    const config = IndustryAdapter.getCurrent();
+    document.documentElement.style.setProperty('--primary-pink', config.theme);
+    document.getElementById('industry-logo').innerText = `🦦 ${config.icon} ${config.name.toUpperCase()} STATION`;
+
+    window.onload = render;
+</script>
 </body>
 </html>
