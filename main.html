@@ -101,7 +101,7 @@
 <script>
     if (localStorage.getItem('hasSetup') !== 'true') window.location.href = 'index.html';
 
-    // 老板锁逻辑：默认密码 0000
+    // 老板锁：默认 0000
     function validateBoss(target) {
         const pass = prompt("请输入老板锁密码：");
         if (pass === "0000") {
@@ -212,22 +212,34 @@
 
     function exportCSV() {
         const history = JSON.parse(localStorage.getItem('revenue_history')) || {};
+        
+        // 关键：实时拉取最新的月度原子成本
         const r = parseFloat(localStorage.getItem('monthlyRent')) || 0;
         const s = parseFloat(localStorage.getItem('monthlySalary')) || 0;
         const o = parseFloat(localStorage.getItem('monthlyOther')) || 0;
-        const dailyFixedCost = (r + s + o) / 30;
+        
+        const dRent = (r / 30).toFixed(2);
+        const dSalary = (s / 30).toFixed(2);
+        const dOther = (o / 30).toFixed(2);
+        const dailyFixedTotal = parseFloat(dRent) + parseFloat(dSalary) + parseFloat(dOther);
 
-        let csv = "日期,总营收,毛利(扣物料),达成率,日均房租,日均人工,日均杂费,绝对净利\n";
+        let csv = "日期,总营收,毛利(仅扣物料),达成率,日均房租,日均人工,日均杂费,绝对净利(扣除所有)\n";
+        
         Object.keys(history).forEach(d => {
             const h = history[d];
-            const absoluteProfit = (parseFloat(h.profit) - dailyFixedCost).toFixed(2);
-            csv += `${d},${h.revenue},${h.profit},${h.achievement}%,${(r/30).toFixed(2)},${(s/30).toFixed(2)},${(o/30).toFixed(2)},${absoluteProfit}\n`;
+            // 逻辑修正：
+            // AccountingEngine 存入的 h.profit 实际上已经是扣过固定成本的纯利了。
+            // 导出时：【毛利】= 纯利 + 日均固定成本；【绝对净利】= 纯利。
+            const netProfitVal = parseFloat(h.profit) || 0;
+            const grossProfitVal = (netProfitVal + dailyFixedTotal).toFixed(2);
+
+            csv += `${d},${h.revenue},${grossProfitVal},${h.achievement}%,${dRent},${dSalary},${dOther},${netProfitVal.toFixed(2)}\n`;
         });
         
         const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.download = `Full_Report_${new Date().toLocaleDateString()}.csv`;
+        link.download = `Precision_Report_${new Date().toLocaleDateString()}.csv`;
         link.click();
     }
 
