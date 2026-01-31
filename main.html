@@ -22,6 +22,7 @@
         .btn-main:active { transform: translateY(2px); box-shadow: 0 3px #ffdae3; }
         .badge-wall { display: flex; justify-content: center; gap: 12px; margin-top: 20px; font-size: 22px; background: #fcfcfc; padding: 10px; border-radius: 15px; }
         .badge-wall span { filter: grayscale(1); opacity: 0.15; }
+        /* 勋章激活样式增强 */
         .active-badge { filter: none !important; opacity: 1 !important; transform: scale(1.1); }
         #profit-tip { font-size: 12px; color: var(--success-green); margin-top: 8px; font-weight: bold; height: 18px; }
         .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; justify-content:center; align-items:center; }
@@ -132,9 +133,16 @@
             localStorage.setItem('todayRev', rev);
             const result = AccountingEngine.calculateProfit(val);
             AccountingEngine.saveDailySnapshot(rev);
+
+            // 【新增联动】触发勋章判定
+            if (window.AchievementEngine) {
+                AchievementEngine.check(rev);
+            }
+
             document.getElementById('profit-tip').innerText = `✨ 纯赚 ¥${result.netProfit}`;
             setTimeout(() => document.getElementById('profit-tip').innerText="", 3000);
-            input.value = ''; render();
+            input.value = ''; 
+            render();
         }
     }
 
@@ -155,26 +163,19 @@
         if (dates.length === 0) return;
 
         const now = new Date();
-        // 修正：动态获取当月总天数
         const totalDaysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
         const currentDay = now.getDate();
         const remainingDays = totalDaysInMonth - currentDay;
 
-        // 获取近7日平均纯利
         const profits = dates.slice(-7).map(d => parseFloat(history[d].profit) || 0);
         const avgDailyProfit = profits.reduce((a, b) => a + b, 0) / profits.length;
-
-        // 本月累计已达成纯利
         const currentTotalProfit = Object.values(history).reduce((sum, h) => sum + (parseFloat(h.profit) || 0), 0);
 
-        // 预测总利润
         const estimatedTotal = remainingDays > 0 
             ? currentTotalProfit + (avgDailyProfit * remainingDays) 
             : currentTotalProfit;
 
         document.getElementById('forecast-val').innerText = `¥ ${estimatedTotal.toFixed(2)}`;
-        
-        // 联动计算回本倒计时
         calculateROI(avgDailyProfit, currentTotalProfit);
     }
 
@@ -202,10 +203,12 @@
 
     function exportCSV() {
         const history = JSON.parse(localStorage.getItem('revenue_history')) || {};
+        // 【修正】确保导出时变量被正确抓取
         const r = parseFloat(localStorage.getItem('monthlyRent')) || 0;
         const s = parseFloat(localStorage.getItem('monthlySalary')) || 0;
         const o = parseFloat(localStorage.getItem('monthlyOther')) || 0;
-        const dFixed = (r+s+o)/30;
+        const dFixed = (r + s + o) / 30;
+
         let csv = "日期,总营收,毛利,达成率,日均房租,日均人工,日均杂费,绝对净利\n";
         Object.keys(history).forEach(d => {
             const h = history[d];
@@ -255,8 +258,14 @@
         if(score === 0) emoji.innerText = "😴";
         else if(score < 100) emoji.innerText = "🦦";
         else emoji.innerText = "💎";
+
+        // 【增强】勋章渲染
         const earned = JSON.parse(localStorage.getItem('earned_badges')) || [];
-        earned.forEach(id => { if(document.getElementById('badge-'+id)) document.getElementById('badge-'+id).classList.add('active-badge'); });
+        document.querySelectorAll('.badge-wall span').forEach(el => el.classList.remove('active-badge'));
+        earned.forEach(id => { 
+            const badgeEl = document.getElementById('badge-'+id);
+            if(badgeEl) badgeEl.classList.add('active-badge'); 
+        });
     }
 
     const config = IndustryAdapter.getCurrent();
