@@ -67,17 +67,18 @@
     <div class="forecast-card" style="border-left-color: var(--success-green);">
         <div style="font-size: 11px; color: #666; font-weight: bold;">💰 回本进度 (总投入: ¥<span id="roi-total">0</span>)</div>
         <div class="roi-bar-container"><div id="roi-progress"></div></div>
-        <div id="roi-desc" style="font-size: 10px; color: #999;">累计纯利 ¥0，还需 ¥0 回本</div>
+        <div id="roi-desc" style="font-size: 10px; color: #999; line-height: 1.5;">累计纯利 ¥0，还需 ¥0 回本</div>
     </div>
 
     <div class="forecast-card">
         <div style="font-size: 11px; color: #666; font-weight: bold;">🔮 月度利润预测</div>
         <div id="forecast-val" style="font-size: 20px; color: #4facfe; font-weight: bold; margin-top: 5px;">计算中...</div>
+        <div style="font-size: 10px; color: #999; margin-top: 3px;">基于近7日表现预测本月净盈余</div>
     </div>
     
     <canvas id="trendChart" style="margin:20px 0;"></canvas>
     <div id="history-list"></div>
-    <button class="btn-main" style="margin-top:20px; font-size:14px;" onclick="exportCSV()">导出报表</button>
+    <button class="btn-main" style="margin-top:20px; font-size:14px;" onclick="exportCSV()">导出全维度 CSV 报表</button>
 </div>
 
 <div id="cost-detail-modal" class="modal-overlay">
@@ -126,11 +127,11 @@
         const input = document.getElementById('revenue-input');
         const val = parseFloat(input.value);
         if (val > 0) {
-            let totalRev = parseFloat(localStorage.getItem('todayRev')) || 0;
-            totalRev += val;
-            localStorage.setItem('todayRev', totalRev);
+            let rev = parseFloat(localStorage.getItem('todayRev')) || 0;
+            rev += val;
+            localStorage.setItem('todayRev', rev);
             const result = AccountingEngine.calculateProfit(val);
-            AccountingEngine.saveDailySnapshot(totalRev);
+            AccountingEngine.saveDailySnapshot(rev);
             document.getElementById('profit-tip').innerText = `✨ 纯赚 ¥${result.netProfit}`;
             setTimeout(() => document.getElementById('profit-tip').innerText="", 3000);
             input.value = ''; render();
@@ -141,20 +142,64 @@
         const modal = document.getElementById('report-modal');
         const isOpening = modal.style.display !== 'block';
         modal.style.display = isOpening ? 'block' : 'none';
-        if(isOpening) { renderChart(); renderHistoryList(); calculateForecast(); calculateROI(); }
+        if(isOpening) { 
+            renderChart(); 
+            renderHistoryList(); 
+            calculateForecast(); 
+        }
     }
 
-    function calculateROI() {
-        const startup = parseFloat(localStorage.getItem('startupCost')) || 0;
+    function calculateForecast() {
         const history = JSON.parse(localStorage.getItem('revenue_history')) || {};
-        const totalProfit = Object.values(history).reduce((sum, h) => sum + (parseFloat(h.profit) || 0), 0);
-        const progress = startup > 0 ? Math.min((totalProfit / startup) * 100, 100).toFixed(1) : 100;
-        document.getElementById('roi-total').innerText = startup;
-        document.getElementById('roi-progress').style.width = progress + '%';
-        document.getElementById('roi-desc').innerText = `累计纯利 ¥${totalProfit.toFixed(2)}，进度 ${progress}%，还需 ¥${Math.max(startup-totalProfit,0).toFixed(2)} 回本`;
+        const dates = Object.keys(history);
+        if (dates.length === 0) return;
+
+        const now = new Date();
+        // 修正：动态获取当月总天数
+        const totalDaysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const currentDay = now.getDate();
+        const remainingDays = totalDaysInMonth - currentDay;
+
+        // 获取近7日平均纯利
+        const profits = dates.slice(-7).map(d => parseFloat(history[d].profit) || 0);
+        const avgDailyProfit = profits.reduce((a, b) => a + b, 0) / profits.length;
+
+        // 本月累计已达成纯利
+        const currentTotalProfit = Object.values(history).reduce((sum, h) => sum + (parseFloat(h.profit) || 0), 0);
+
+        // 预测总利润
+        const estimatedTotal = remainingDays > 0 
+            ? currentTotalProfit + (avgDailyProfit * remainingDays) 
+            : currentTotalProfit;
+
+        document.getElementById('forecast-val').innerText = `¥ ${estimatedTotal.toFixed(2)}`;
+        
+        // 联动计算回本倒计时
+        calculateROI(avgDailyProfit, currentTotalProfit);
     }
 
-    // 复用你修正后的 CSV 导出逻辑
+    function calculateROI(avgDailyProfit, totalProfit) {
+        const startup = parseFloat(localStorage.getItem('startupCost')) || 0;
+        const progress = startup > 0 ? Math.min((totalProfit / startup) * 100, 100).toFixed(1) : 100;
+        const remainingCost = Math.max(startup - totalProfit, 0);
+
+        let countdownText = "";
+        if (remainingCost <= 0) {
+            countdownText = "🎉 恭喜！已完全回本";
+        } else if (avgDailyProfit <= 0) {
+            countdownText = "⏳ 需保持盈利以预测回本期";
+        } else {
+            const daysToROI = Math.ceil(remainingCost / avgDailyProfit);
+            const roiDate = new Date();
+            roiDate.setDate(roiDate.getDate() + daysToROI);
+            countdownText = `预计还需 **${daysToROI}** 天回本 (约 ${roiDate.toLocaleDateString()})`;
+        }
+
+        document.getElementById('roi-total').innerText = startup.toLocaleString();
+        document.getElementById('roi-progress').style.width = progress + '%';
+        document.getElementById('roi-desc').innerHTML = `累计纯利 ¥${totalProfit.toFixed(2)}，进度 ${progress}%<br>${countdownText}`;
+    }
+
     function exportCSV() {
         const history = JSON.parse(localStorage.getItem('revenue_history')) || {};
         const r = parseFloat(localStorage.getItem('monthlyRent')) || 0;
@@ -175,17 +220,6 @@
         link.href = URL.createObjectURL(blob);
         link.download = `Precision_Report_${new Date().toLocaleDateString()}.csv`;
         link.click();
-    }
-
-    function calculateForecast() {
-        const history = JSON.parse(localStorage.getItem('revenue_history')) || {};
-        const dates = Object.keys(history);
-        if (dates.length === 0) return;
-        const profits = dates.slice(-7).map(d => parseFloat(history[d].profit) || 0);
-        const avg = profits.reduce((a, b) => a + b, 0) / profits.length;
-        const daysLeft = 30 - new Date().getDate();
-        const total = Object.values(history).reduce((a,b)=>a+(parseFloat(b.profit)||0), 0) + (avg * daysLeft);
-        document.getElementById('forecast-val').innerText = `¥ ${total.toFixed(2)}`;
     }
 
     function renderChart() {
