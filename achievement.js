@@ -28,7 +28,7 @@ const AchievementEngine = {
             id: 'anti_procrastination', 
             name: '拒绝拖延', 
             icon: '🔥', 
-            desc: 'INTJ 的执行力！今日已达成生存基准线。', 
+            desc: '超绝的执行力！今日已达成生存基准线。', 
             condition: (s) => s.isDailyGoalMet === true 
         }
     ],
