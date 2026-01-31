@@ -1,29 +1,14 @@
-/**
- * 模块：多行业配置中心
- */
-const IndustryConfig = {
-    current: 'nail', // 可切换: 'nail', 'food', 'retail'
-    
-    settings: {
-        nail: {
-            name: "美业主理人",
-            icon: "💅",
-            activeColor: "#ff85a2",
-            commonItems: ["卸甲", "单色", "法式", "贴钻"]
-        },
-        food: {
-            name: "摊位主理人",
-            icon: "🍳",
-            activeColor: "#ffb347",
-            commonItems: ["标配版", "豪华版", "加蛋加肠"]
-        },
-        retail: {
-            name: "独立店主",
-            icon: "🛍️",
-            activeColor: "#4facfe",
-            commonItems: ["零售卖出", "打包服务"]
-        }
+const IndustryAdapter = {
+    registry: {
+        "nail": { name: "美甲美睫", theme: "#ff85a2", icon: "💅", unit: "位顾客" },
+        "food": { name: "小吃摆摊", theme: "#ffb347", icon: "🌭", unit: "份餐点" },
+        "retail": { name: "服装零售", theme: "#4facfe", icon: "👗", unit: "件衣服" }
     },
-    
-    get() { return this.settings[this.current]; }
+    getCurrent() {
+        const type = localStorage.getItem('industry_type') || 'nail';
+        return this.registry[type];
+    },
+    setIndustry(type) {
+        localStorage.setItem('industry_type', type);
+    }
 };
