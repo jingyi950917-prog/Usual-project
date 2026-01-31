@@ -12,37 +12,46 @@
         :root { --primary-pink: #ff85a2; --bg: #fff9fa; --success-green: #58cc02; }
         body { font-family: 'PingFang SC', sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
         .app-container { width: 340px; background: #fff; border-radius: 35px; box-shadow: 0 20px 40px rgba(255,133,162,0.1); padding: 25px; text-align: center; position: relative; }
-        .top-nav { display: flex; justify-content: space-between; font-size: 11px; color: #ccc; margin-bottom: 15px; }
+        .top-nav { display: flex; justify-content: space-between; font-size: 11px; color: #ccc; margin-bottom: 10px; }
         #emoji-status { font-size: 90px; margin: 15px 0; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; }
         .health-score { font-size: 50px; font-weight: bold; color: var(--primary-pink); line-height: 1; }
         .health-label { color: #999; font-size: 12px; margin-top: 5px; }
         .input-card { background: #fef0f3; padding: 20px; border-radius: 25px; margin: 20px 0; }
         input { border: none; background: transparent; font-size: 28px; width: 100%; text-align: center; color: var(--primary-pink); border-bottom: 2px solid #ffdae3; outline: none; }
         .btn-main { background: var(--primary-pink); color: white; border: none; padding: 16px; border-radius: 50px; font-size: 18px; width: 100%; cursor: pointer; font-weight: bold; box-shadow: 0 6px #ffdae3; transition: 0.1s; }
-        .btn-main:active { transform: translateY(3px); box-shadow: 0 3px #ffdae3; }
+        .btn-main:active { transform: translateY(2px); box-shadow: 0 3px #ffdae3; }
         .badge-wall { display: flex; justify-content: center; gap: 12px; margin-top: 20px; font-size: 22px; background: #fcfcfc; padding: 10px; border-radius: 15px; }
         .badge-wall span { filter: grayscale(1); opacity: 0.15; transition: 0.5s; }
         .active-badge { filter: none !important; opacity: 1 !important; transform: scale(1.1); }
         #profit-tip { font-size: 12px; color: var(--success-green); margin-top: 8px; font-weight: bold; height: 18px; }
         
-        #report-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:2000; padding:25px; box-sizing:border-box; overflow-y:auto; animation: slideUp 0.4s ease; }
+        /* 弹窗通用样式 */
+        .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; justify-content:center; align-items:center; }
+        #report-modal { background:white; width:100%; height:100%; padding:25px; box-sizing:border-box; overflow-y:auto; animation: slideUp 0.4s ease; display:none; position:fixed; top:0; left:0; z-index:2500; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        .history-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dotted #eee; font-size: 13px; }
+        
+        .history-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px dotted #eee; font-size: 14px; }
         .forecast-card { background: #f8f9ff; padding: 15px; border-radius: 20px; margin: 15px 0; border-left: 5px solid #4facfe; text-align: left; }
+        
+        /* 成本修改框专用 */
+        .edit-modal-content { background:white; width:300px; padding:25px; border-radius:30px; text-align:left; }
+        .edit-group { margin-bottom:15px; }
+        .edit-group label { font-size:11px; color:#999; display:block; }
+        .edit-group input { font-size:18px; text-align:left; width:100%; border-bottom:1px solid #eee; padding:5px 0; }
     </style>
 </head>
 <body>
 
 <div class="app-container">
     <div class="top-nav">
-        <span id="date-display">加载中...</span>
+        <span id="date-display">2026/01/31</span>
         <div>
-            <span onclick="updateBaseCost()" style="cursor:pointer; margin-right:10px;">⚙️ 成本</span>
+            <span onclick="openCostModal()" style="cursor:pointer; margin-right:12px;">⚙️ 成本</span>
             <span onclick="toggleReport()" style="cursor:pointer">📊 报表</span>
         </div>
     </div>
     
-    <div id="industry-logo" style="font-size: 13px; color: var(--primary-pink); font-weight: bold;">🦦 STATION</div>
+    <div id="industry-logo" style="font-size: 13px; color: var(--primary-pink); font-weight: bold;">🦦 OTTER STATION</div>
     <div id="health-score" class="health-score">0%</div>
     <div class="health-label">今日目标达成率</div>
     <div id="emoji-status">😴</div>
@@ -61,6 +70,28 @@
     </div>
 </div>
 
+<div id="cost-detail-modal" class="modal-overlay">
+    <div class="edit-modal-content">
+        <h3 style="margin-top:0; color:var(--primary-pink); font-size:18px;">⚙️ 成本细项微调</h3>
+        <div class="edit-group">
+            <label>月房租/物业</label>
+            <input type="number" id="edit-rent">
+        </div>
+        <div class="edit-group">
+            <label>月人工/工资</label>
+            <input type="number" id="edit-salary">
+        </div>
+        <div class="edit-group">
+            <label>月固定杂费 (水电/网)</label>
+            <input type="number" id="edit-other">
+        </div>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button class="btn-main" style="font-size:14px; padding:12px;" onclick="saveCostDetails()">保存更新</button>
+            <button class="btn-main" style="font-size:14px; padding:12px; background:#ccc; box-shadow:0 6px #bbb;" onclick="closeCostModal()">取消</button>
+        </div>
+    </div>
+</div>
+
 <div id="report-modal">
     <div style="display:flex; justify-content:space-between; align-items:center;">
         <h2 style="color:var(--primary-pink); margin:0;">数据复盘</h2>
@@ -75,7 +106,7 @@
 
     <div style="margin:10px 0;"><canvas id="trendChart"></canvas></div>
     <div id="history-list"></div>
-    <button class="btn-main" style="margin-top:20px; font-size:14px;" onclick="exportCSV()">导出 CSV 报表</button>
+    <button class="btn-main" style="margin-top:20px; font-size:14px;" onclick="exportCSV()">导出全量 CSV 报表</button>
 </div>
 
 <script src="accounting.js"></script>
@@ -84,26 +115,49 @@
 <script>
     if (localStorage.getItem('hasSetup') !== 'true') window.location.href = 'index.html';
 
-    // 重新获取成本，确保快捷修改后能生效
+    // 动态获取每日成本逻辑
     const getDailyCost = () => parseFloat(localStorage.getItem('dailyCost')) || 1;
     let totalRev = parseFloat(localStorage.getItem('todayRev')) || 0;
-
-    function updateBaseCost() {
-        const current = getDailyCost();
-        const next = prompt("修改每日固定成本 (房租+人工+杂费):", current);
-        if (next !== null && !isNaN(parseFloat(next))) {
-            localStorage.setItem('dailyCost', parseFloat(next).toFixed(2));
-            location.reload(); 
-        }
-    }
 
     function applyIndustry() {
         const config = IndustryAdapter.getCurrent();
         document.documentElement.style.setProperty('--primary-pink', config.theme);
         document.getElementById('industry-logo').innerHTML = `🦦 ${config.icon} ${config.name.toUpperCase()} STATION`;
         document.getElementById('unit-tip').innerText = `今天接待了新的${config.unit}吗？`;
+        document.getElementById('record-btn').style.boxShadow = `0 6px ${config.theme}44`;
     }
 
+    // --- 成本微调逻辑 ---
+    function openCostModal() {
+        document.getElementById('edit-rent').value = localStorage.getItem('monthlyRent') || 0;
+        document.getElementById('edit-salary').value = localStorage.getItem('monthlySalary') || 0;
+        document.getElementById('edit-other').value = localStorage.getItem('monthlyOther') || 0;
+        document.getElementById('cost-detail-modal').style.display = 'flex';
+    }
+
+    function closeCostModal() {
+        document.getElementById('cost-detail-modal').style.display = 'none';
+    }
+
+    function saveCostDetails() {
+        const r = parseFloat(document.getElementById('edit-rent').value) || 0;
+        const s = parseFloat(document.getElementById('edit-salary').value) || 0;
+        const o = parseFloat(document.getElementById('edit-other').value) || 0;
+
+        localStorage.setItem('monthlyRent', r);
+        localStorage.setItem('monthlySalary', s);
+        localStorage.setItem('monthlyOther', o);
+
+        const dailyTotal = ((r + s + o) / 30).toFixed(2);
+        localStorage.setItem('dailyCost', dailyTotal);
+
+        closeCostModal();
+        render(); // 立即刷新主页百分比
+        alert(`成本更新成功！今日基准：¥${dailyTotal}`);
+        location.reload(); 
+    }
+
+    // --- 核心记账逻辑 ---
     function record() {
         const input = document.getElementById('revenue-input');
         const val = parseFloat(input.value);
@@ -115,6 +169,7 @@
             totalRev += val;
             localStorage.setItem('todayRev', totalRev);
             
+            // 顺序：存入快照 -> 检查勋章 -> 渲染
             AccountingEngine.saveDailySnapshot(totalRev); 
             if (typeof AchievementSystem !== 'undefined') AchievementSystem.check();
 
@@ -129,28 +184,39 @@
         setTimeout(() => { document.getElementById('profit-tip').innerText = ""; }, 3000);
     }
 
+    // --- 报表与预测逻辑 ---
     function toggleReport() {
         const modal = document.getElementById('report-modal');
         const isOpening = modal.style.display !== 'block';
         modal.style.display = isOpening ? 'block' : 'none';
-        if(isOpening) { renderChart(); renderHistoryList(); calculateForecast(); }
+        if(isOpening) { 
+            renderChart(); 
+            renderHistoryList(); 
+            calculateForecast();
+        }
     }
 
     function calculateForecast() {
         const history = JSON.parse(localStorage.getItem('revenue_history')) || {};
         const dates = Object.keys(history);
-        if (dates.length === 0) { document.getElementById('forecast-val').innerText = "暂无历史"; return; }
+        if (dates.length === 0) {
+            document.getElementById('forecast-val').innerText = "暂无数据";
+            return;
+        }
 
         const now = new Date();
         const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
         const remainingDays = daysInMonth - now.getDate();
 
-        const recentProfits = dates.slice(-7).map(d => parseFloat(history[d].profit));
-        const avgProfit = recentProfits.reduce((a, b) => a + b, 0) / recentProfits.length;
-        const currentTotal = dates.reduce((sum, d) => sum + parseFloat(history[d].profit), 0);
+        // 计算近7日利润均值
+        const profits = dates.slice(-7).map(d => parseFloat(history[d].profit) || 0);
+        const avgDailyProfit = profits.reduce((a, b) => a + b, 0) / profits.length;
         
-        const forecast = currentTotal + (avgProfit * remainingDays);
-        document.getElementById('forecast-val').innerText = `¥ ${forecast.toFixed(2)}`;
+        // 已有总利润 + (均值 * 剩余天数)
+        const currentTotalProfit = dates.reduce((sum, d) => sum + (parseFloat(history[d].profit) || 0), 0);
+        const estimatedTotal = currentTotalProfit + (avgDailyProfit * remainingDays);
+
+        document.getElementById('forecast-val').innerText = `¥ ${estimatedTotal.toFixed(2)}`;
     }
 
     function renderChart() {
@@ -187,10 +253,12 @@
         link.click();
     }
 
+    // --- 界面渲染渲染 ---
     function render() {
         const currentDailyCost = getDailyCost();
         const score = Math.floor((totalRev / currentDailyCost) * 100);
         const scoreEl = document.getElementById('health-score');
+        
         scoreEl.innerText = score + '%';
         scoreEl.style.color = score >= 100 ? "var(--success-green)" : "var(--primary-pink)";
         
@@ -200,10 +268,15 @@
         else if(score < 200) emoji.innerText = "🍤";
         else emoji.innerText = "💎";
 
+        // 更新勋章墙
         const earned = JSON.parse(localStorage.getItem('earned_badges')) || [];
-        earned.forEach(id => { if(document.getElementById('badge-'+id)) document.getElementById('badge-'+id).classList.add('active-badge'); });
+        earned.forEach(id => {
+            const el = document.getElementById('badge-'+id);
+            if(el) el.classList.add('active-badge');
+        });
     }
 
+    // 初始化执行
     const today = new Date().toLocaleDateString();
     if (localStorage.getItem('last_active_date') !== today) {
         localStorage.setItem('todayRev', '0');
