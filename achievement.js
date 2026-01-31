@@ -3,7 +3,7 @@ const AchievementEngine = {
         { id: 'first_blood', name: '首单入账', icon: '💰', desc: '打破鸭蛋，开工大吉！', condition: (s) => s.totalSales > 0 },
         { id: 'profitable_king', name: '盈利王者', icon: '👑', desc: '连续达标，你是房东克星！', condition: (s) => s.streak >= 3 },
         { id: 'smart_buyer', name: '精明猎手', icon: '🦊', desc: '精准记账，每一分钱都有据可查。', condition: (s) => s.recordCount >= 5 },
-        { id: 'anti_procrastination', name: '拒绝拖延', icon: '🔥', desc: 'INTJ 执行力！今日目标已达成。', condition: (s) => s.isDailyGoalMet === true }
+        { id: 'anti_procrastination', name: '拒绝拖延', icon: '🔥', desc: '超绝执行力！今日目标已达成。', condition: (s) => s.isDailyGoalMet === true }
     ],
 
     getStats() {
