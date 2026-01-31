@@ -2,107 +2,81 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>水獭主理人能量站</title>
     <style>
-        :root { --primary-pink: #ff85a2; --bg-color: #fff9fa; --card-bg: #ffffff; }
-        body { font-family: 'PingFang SC', sans-serif; background: var(--bg-color); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
-        .app-container { width: 100%; max-width: 360px; background: var(--card-bg); border-radius: 30px; box-shadow: 0 20px 40px rgba(255,133,162,0.15); padding: 25px; text-align: center; }
-        
-        #emoji-status { font-size: 80px; margin: 20px 0; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .pulse { animation: pulse-animation 1s infinite; }
-        @keyframes pulse-animation { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-
-        .health-score { font-size: 48px; font-weight: bold; color: var(--primary-pink); margin-bottom: 5px; }
-        .health-label { color: #999; font-size: 14px; margin-bottom: 10px; }
-
-        .input-group { background: #fef0f3; padding: 15px; border-radius: 20px; margin-bottom: 15px; }
-        input, textarea { border: none; background: transparent; font-size: 18px; width: 100%; text-align: center; outline: none; color: var(--primary-pink); }
-        textarea { font-size: 12px; height: 40px; border-bottom: 1px solid #ffdae3; }
-        
-        .btn-group { display: flex; gap: 10px; margin-top: 10px; }
-        .btn { flex: 1; border: none; padding: 12px; border-radius: 50px; font-size: 14px; cursor: pointer; transition: 0.3s; font-weight: bold; }
-        .btn-add { background: var(--primary-pink); color: white; }
-        .btn-purchase { background: #1cb0f6; color: white; }
-        
-        .badge-wall { display: flex; justify-content: center; gap: 8px; margin-top: 20px; font-size: 20px; }
+        :root { --primary-pink: #ff85a2; --bg: #fff9fa; }
+        body { font-family: 'PingFang SC', sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .app-container { width: 340px; background: #fff; border-radius: 35px; box-shadow: 0 20px 40px rgba(255,133,162,0.1); padding: 25px; text-align: center; }
+        #emoji-status { font-size: 90px; margin: 15px 0; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .health-score { font-size: 50px; font-weight: bold; color: var(--primary-pink); line-height: 1; }
+        .health-label { color: #999; font-size: 12px; margin-top: 5px; }
+        .input-card { background: #fef0f3; padding: 20px; border-radius: 25px; margin: 20px 0; }
+        input { border: none; background: transparent; font-size: 26px; width: 140px; text-align: center; color: var(--primary-pink); border-bottom: 2px solid #ffdae3; outline: none; }
+        .btn-main { background: var(--primary-pink); color: white; border: none; padding: 15px 40px; border-radius: 50px; font-size: 18px; width: 100%; cursor: pointer; font-weight: bold; }
+        .badge-wall { display: flex; justify-content: center; gap: 10px; margin-top: 15px; font-size: 20px; }
         .badge-wall span { filter: grayscale(1); opacity: 0.2; }
-        .badge-active { filter: none !important; opacity: 1 !important; }
+        .active-badge { filter: none !important; opacity: 1 !important; }
+        .ai-link { font-size: 11px; color: #1cb0f6; margin-top: 15px; cursor: pointer; text-decoration: underline; }
     </style>
 </head>
 <body>
 
 <div class="app-container">
-    <div style="font-size: 14px; font-weight: bold; color: var(--primary-pink);">🦦 小店能量站</div>
+    <div style="font-size: 13px; color: var(--primary-pink); font-weight: bold;">🦦 OTTER ENERGY STATION</div>
     <div id="health-score" class="health-score">0%</div>
+    <div class="health-label">今日目标达成率</div>
+    
     <div id="emoji-status">😴</div>
     
-    <div class="input-group">
-        <input type="number" id="revenue-input" placeholder="输入刚才收入 ¥">
-        <button class="btn btn-add" style="margin-top:10px;" onclick="addRevenue()">记录成交</button>
+    <div class="input-card">
+        <input type="number" id="revenue-input" placeholder="0.00">
+        <div style="font-size: 12px; color: #ccabb3; margin-top: 8px;">刚才收入了多少？</div>
     </div>
 
-    <div class="input-group" style="background: #f0f9ff;">
-        <textarea id="ocr-input" placeholder="粘贴拼多多/淘宝采购截图文字..."></textarea>
-        <button class="btn btn-purchase" style="margin-top:10px;" onclick="processPurchase()">AI 识别进货</button>
-    </div>
+    <button class="btn-main" onclick="record()">记录成交</button>
+    
+    <div class="ai-link" onclick="location.href='ai_extract.html'">✨ AI 识别采购截图</div>
 
-    <div class="badge-wall" id="badge-wall">
-        <span title="首单">💰</span><span title="盈利">👑</span><span title="精明">🦊</span><span title="勤奋">🔥</span>
+    <div class="badge-wall" id="badges">
+        <span title="首单">💰</span><span title="达标">👑</span><span title="精明">🦊</span><span title="勤奋">🔥</span>
     </div>
-
-    <div style="font-size: 11px; color: #ccc; margin-top: 20px; cursor: pointer;" onclick="localStorage.clear();location.reload();">重置所有数据</div>
 </div>
 
-<script src="vision.js"></script>
-<script src="accounting.js"></script>
-<script src="achievement.js"></script>
-
 <script>
-    // 路由守卫
     if (localStorage.getItem('hasSetup') !== 'true') window.location.href = 'setup.html';
 
-    const DAILY_COST = parseFloat(localStorage.getItem('dailyCost')) || 200;
-    let totalRevenue = parseFloat(localStorage.getItem('todayRev')) || 0;
+    const DAILY_COST = parseFloat(localStorage.getItem('dailyCost')) || 1;
+    let totalRev = parseFloat(localStorage.getItem('todayRev')) || 0;
 
-    window.onload = render;
-
-    function addRevenue() {
+    function record() {
         const val = parseFloat(document.getElementById('revenue-input').value);
         if (val) {
-            totalRevenue += val;
-            localStorage.setItem('todayRev', totalRevenue);
+            totalRev += val;
+            localStorage.setItem('todayRev', totalRev);
             document.getElementById('revenue-input').value = '';
             render();
-            // 检查勋章
-            AchievementSystem.check({ totalSales: totalRevenue }); 
         }
     }
 
-    async function processPurchase() {
-        const text = document.getElementById('ocr-input').value;
-        const res = await UniversalVision.parseAnyReceipt(text);
-        AccountingEngine.syncPurchase(res.itemName, res.unitCost, res.quantity);
-        alert(`成功识别：${res.itemName}\n单件分摊成本已存入数据库`);
-        document.getElementById('ocr-input').value = '';
-    }
-
     function render() {
-        const score = Math.floor((totalRevenue / DAILY_COST) * 100);
+        const score = Math.floor((totalRev / DAILY_COST) * 100);
         document.getElementById('health-score').innerText = score + '%';
         const emoji = document.getElementById('emoji-status');
         
         if(score === 0) emoji.innerText = "😴";
         else if(score < 100) emoji.innerText = "🦦";
-        else if(score < 200) { emoji.innerText = "🍤"; emoji.classList.add('pulse'); }
+        else if(score < 200) emoji.innerText = "🍤";
         else emoji.innerText = "💎";
 
-        // 更新勋章墙
-        const earned = JSON.parse(localStorage.getItem('earned_badges')) || [];
-        const icons = document.getElementById('badge-wall').children;
-        const badgeIds = ['first_blood', 'profitable_king', 'smart_buyer', 'anti_procrastination'];
-        badgeIds.forEach((id, i) => { if(earned.includes(id)) icons[i].classList.add('badge-active'); });
+        // 联动勋章逻辑
+        if (totalRev > 0) document.getElementById('badges').children[0].classList.add('active-badge');
+        if (score >= 100) document.getElementById('badges').children[1].classList.add('active-badge');
     }
+    
+    window.onload = render;
 </script>
 </body>
 </html>
