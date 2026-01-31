@@ -1,16 +1,15 @@
 {
-  "short_name": "能量站",
-  "name": "美业主理人能量站 - 逻辑驱动版",
+  "short_name": "水獭能量站",
+  "name": "水獭主理人经营能量站",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/1864/1864470.png",
+      "src": "https://cdn-icons-png.flaticon.com/512/2613/2613768.png",
       "type": "image/png",
       "sizes": "512x512"
     }
   ],
-  "start_url": "index.html",
-  "background_color": "#ffffff",
+  "start_url": "setup.html",
   "display": "standalone",
-  "scope": "./",
+  "background_color": "#fff9fa",
   "theme_color": "#ff85a2"
 }
