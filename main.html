@@ -2,125 +2,278 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>能量基石 - Setup</title>
+    <title>水獭主理人能量站</title>
     <script src="config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --main-color: #ff85a2; --bg: #fff9fa; }
+        :root { --primary-pink: #ff85a2; --bg: #fff9fa; --success-green: #58cc02; }
         body { font-family: 'PingFang SC', sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .card { width: 340px; background: white; border-radius: 30px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; }
-        .logo { font-size: 60px; margin-bottom: 10px; transition: 0.3s; }
-        .progress { height: 6px; background: #eee; border-radius: 3px; margin: 20px 0; overflow: hidden; }
-        #bar { height: 100%; width: 25%; background: var(--main-color); transition: 0.5s; }
-        .step { display: none; animation: fadeIn 0.4s; text-align: left; }
-        .active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        h2 { color: var(--main-color); font-size: 20px; margin-top: 0; }
-        p { font-size: 13px; color: #888; line-height: 1.6; }
+        .app-container { width: 340px; background: #fff; border-radius: 35px; box-shadow: 0 20px 40px rgba(255,133,162,0.1); padding: 25px; text-align: center; position: relative; }
+        .top-nav { display: flex; justify-content: space-between; font-size: 11px; color: #ccc; margin-bottom: 10px; }
+        #emoji-status { font-size: 90px; margin: 15px 0; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; }
+        .health-score { font-size: 50px; font-weight: bold; color: var(--primary-pink); line-height: 1; }
+        .health-label { color: #999; font-size: 12px; margin-top: 5px; }
+        .input-card { background: #fef0f3; padding: 20px; border-radius: 25px; margin: 20px 0; }
+        input { border: none; background: transparent; font-size: 28px; width: 100%; text-align: center; color: var(--primary-pink); border-bottom: 2px solid #ffdae3; outline: none; }
+        .btn-main { background: var(--primary-pink); color: white; border: none; padding: 16px; border-radius: 50px; font-size: 18px; width: 100%; cursor: pointer; font-weight: bold; box-shadow: 0 6px #ffdae3; transition: 0.1s; }
+        .btn-main:active { transform: translateY(2px); box-shadow: 0 3px #ffdae3; }
+        .badge-wall { display: flex; justify-content: center; gap: 12px; margin-top: 20px; font-size: 22px; background: #fcfcfc; padding: 10px; border-radius: 15px; }
+        .badge-wall span { filter: grayscale(1); opacity: 0.15; transition: 0.5s; }
+        .active-badge { filter: none !important; opacity: 1 !important; transform: scale(1.1); }
+        #profit-tip { font-size: 12px; color: var(--success-green); margin-top: 8px; font-weight: bold; height: 18px; }
         
-        .industry-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 20px 0; }
-        .industry-item { border: 2px solid #eee; border-radius: 15px; padding: 10px; text-align: center; cursor: pointer; transition: 0.3s; }
-        .industry-item.selected { border-color: var(--main-color); background: #fdf0f2; }
-        .industry-item span { font-size: 24px; display: block; }
-        .industry-item label { font-size: 11px; color: #666; font-weight: bold; }
-
-        input { width: 100%; border: none; background: #fdf0f2; padding: 15px; border-radius: 15px; font-size: 18px; margin: 15px 0; box-sizing: border-box; outline: none; color: var(--main-color); }
-        button { width: 100%; background: var(--main-color); color: white; border: none; padding: 15px; border-radius: 50px; font-size: 16px; cursor: pointer; font-weight: bold; margin-top: 10px; }
-        .back-link { display: block; text-align: center; font-size: 12px; color: #ccc; margin-top: 15px; text-decoration: none; cursor: pointer; }
+        .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; justify-content:center; align-items:center; }
+        #report-modal { background:white; width:100%; height:100%; padding:25px; box-sizing:border-box; overflow-y:auto; animation: slideUp 0.4s ease; display:none; position:fixed; top:0; left:0; z-index:2500; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        
+        .history-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px dotted #eee; font-size: 14px; }
+        .forecast-card { background: #f8f9ff; padding: 15px; border-radius: 20px; margin: 15px 0; border-left: 5px solid #4facfe; text-align: left; }
+        .edit-modal-content { background:white; width:300px; padding:25px; border-radius:30px; text-align:left; }
+        .edit-group { margin-bottom:15px; }
+        .edit-group label { font-size:11px; color:#999; display:block; }
+        .edit-group input { font-size:18px; text-align:left; width:100%; border-bottom:1px solid #eee; padding:5px 0; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <div class="logo" id="main-logo">🦦</div>
-        <div class="progress"><div id="bar"></div></div>
-        
-        <div class="step active" id="s0">
-            <h2>🏷️ 选择行业身份</h2>
-            <p>INTJ 逻辑：不同的行业有不同的成本模型。请选择你的赛道：</p>
-            <div class="industry-grid" id="industry-selector">
-                <div class="industry-item selected" onclick="selectType('nail', this)">
-                    <span>💅</span><label>美甲美睫</label>
-                </div>
-                <div class="industry-item" onclick="selectType('food', this)">
-                    <span>🌭</span><label>小吃摆摊</label>
-                </div>
-                <div class="industry-item" onclick="selectType('retail', this)">
-                    <span>👗</span><label>服装零售</label>
-                </div>
-            </div>
-            <button onclick="move(1)">确认身份</button>
-        </div>
 
-        <div class="step" id="s1">
-            <h2>🏠 房租与物业</h2>
-            <p>房租是生存的第一道坎。请输入每月固定支出：</p>
-            <input type="number" id="rent" placeholder="¥ 5000">
-            <button onclick="move(2)">下一步</button>
-            <span class="back-link" onclick="move(0)">返回重选行业</span>
-        </div>
-
-        <div class="step" id="s2">
-            <h2>👸 你的专属工资</h2>
-            <p>如果不给自己发工资，那你只是在自我剥削。你希望每月拿多少？</p>
-            <input type="number" id="salary" placeholder="¥ 8000">
-            <button onclick="move(3)">下一步</button>
-        </div>
-
-        <div class="step" id="s3">
-            <h2>🔋 杂费与折旧</h2>
-            <p>水电、材料折旧。算出日均成本，你才知道睁眼欠多少钱：</p>
-            <input type="number" id="misc" placeholder="¥ 1000">
-            <button onclick="save()">进入水獭能量站</button>
+<div class="app-container">
+    <div class="top-nav">
+        <span id="date-display">2026/01/31</span>
+        <div>
+            <span onclick="validateBoss('cost')" style="cursor:pointer; margin-right:12px;">🔒 成本</span>
+            <span onclick="validateBoss('report')" style="cursor:pointer">📊 报表</span>
         </div>
     </div>
+    
+    <div id="industry-logo" style="font-size: 13px; color: var(--primary-pink); font-weight: bold;">🦦 STATION</div>
+    <div id="health-score" class="health-score">0%</div>
+    <div class="health-label">今日目标达成率</div>
+    <div id="emoji-status">😴</div>
+    
+    <div class="input-card">
+        <input type="number" id="revenue-input" inputmode="decimal" placeholder="¥ 0.00">
+        <div id="unit-tip" style="font-size: 12px; color: #ccabb3; margin-top: 10px;">记录成交金额</div>
+        <div id="profit-tip"></div>
+    </div>
 
-    <script>
-        // 路由守卫
-        if (localStorage.getItem('hasSetup') === 'true') {
-            window.location.href = 'main.html';
+    <button class="btn-main" id="record-btn" onclick="record()">记录成交</button>
+    <a href="ai_extract.html" class="ai-link" style="display:block; margin-top:15px; font-size:12px; color:#1cb0f6; text-decoration:none;">✨ 识别采购截图</a>
+
+    <div class="badge-wall" id="badges">
+        <span id="badge-first_blood">💰</span><span id="badge-profitable_king">👑</span><span id="badge-smart_buyer">🦊</span><span id="badge-anti_procrastination">🔥</span>
+    </div>
+</div>
+
+<div id="cost-detail-modal" class="modal-overlay">
+    <div class="edit-modal-content">
+        <h3 style="margin-top:0; color:var(--primary-pink); font-size:18px;">⚙️ 成本细项微调</h3>
+        <div class="edit-group"><label>月房租/物业</label><input type="number" id="edit-rent"></div>
+        <div class="edit-group"><label>月人工/工资</label><input type="number" id="edit-salary"></div>
+        <div class="edit-group"><label>月固定杂费</label><input type="number" id="edit-other"></div>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button class="btn-main" style="font-size:14px; padding:12px;" onclick="saveCostDetails()">保存更新</button>
+            <button class="btn-main" style="font-size:14px; padding:12px; background:#ccc; box-shadow:0 6px #bbb;" onclick="closeCostModal()">取消</button>
+        </div>
+    </div>
+</div>
+
+<div id="report-modal">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="color:var(--primary-pink); margin:0;">数据复盘</h2>
+        <button onclick="toggleReport()" style="border:none; background:none; font-size:28px;">×</button>
+    </div>
+    <div class="forecast-card">
+        <div style="font-size: 11px; color: #666; font-weight: bold;">🔮 月度利润预测 (基于近7日表现)</div>
+        <div id="forecast-val" style="font-size: 20px; color: #4facfe; font-weight: bold; margin-top: 5px;">计算中...</div>
+        <div id="forecast-desc" style="font-size: 10px; color: #999; margin-top: 3px;">保持当前状态，本月预计净收入</div>
+    </div>
+    <div style="margin:10px 0;"><canvas id="trendChart"></canvas></div>
+    <div id="history-list"></div>
+    <button class="btn-main" style="margin-top:20px; font-size:14px;" onclick="exportCSV()">导出全维度 CSV 报表</button>
+</div>
+
+<script src="accounting.js"></script>
+<script src="achievement.js"></script>
+
+<script>
+    if (localStorage.getItem('hasSetup') !== 'true') window.location.href = 'index.html';
+
+    function validateBoss(target) {
+        const pass = prompt("请输入老板锁密码：");
+        if (pass === "0000") {
+            if (target === 'cost') openCostModal();
+            else toggleReport();
+        } else {
+            alert("权限不足。");
         }
+    }
 
-        let selectedIndustry = 'nail';
+    const getDailyCost = () => parseFloat(localStorage.getItem('dailyCost')) || 1;
+    let totalRev = parseFloat(localStorage.getItem('todayRev')) || 0;
 
-        function selectType(type, el) {
-            selectedIndustry = type;
-            document.querySelectorAll('.industry-item').forEach(item => item.classList.remove('selected'));
-            el.classList.add('selected');
-            const theme = IndustryAdapter.registry[type].theme;
-            document.documentElement.style.setProperty('--main-color', theme);
-            document.getElementById('main-logo').innerText = IndustryAdapter.registry[type].icon;
+    function applyIndustry() {
+        const config = IndustryAdapter.getCurrent();
+        document.documentElement.style.setProperty('--primary-pink', config.theme);
+        document.getElementById('industry-logo').innerHTML = `🦦 ${config.icon} ${config.name.toUpperCase()} STATION`;
+        document.getElementById('unit-tip').innerText = `今天接待了新的${config.unit}吗？`;
+    }
+
+    function openCostModal() {
+        document.getElementById('edit-rent').value = localStorage.getItem('monthlyRent') || 0;
+        document.getElementById('edit-salary').value = localStorage.getItem('monthlySalary') || 0;
+        document.getElementById('edit-other').value = localStorage.getItem('monthlyOther') || 0;
+        document.getElementById('cost-detail-modal').style.display = 'flex';
+    }
+
+    function closeCostModal() {
+        document.getElementById('cost-detail-modal').style.display = 'none';
+    }
+
+    function saveCostDetails() {
+        const r = parseFloat(document.getElementById('edit-rent').value) || 0;
+        const s = parseFloat(document.getElementById('edit-salary').value) || 0;
+        const o = parseFloat(document.getElementById('edit-other').value) || 0;
+        localStorage.setItem('monthlyRent', r);
+        localStorage.setItem('monthlySalary', s);
+        localStorage.setItem('monthlyOther', o);
+        const dailyTotal = ((r + s + o) / 30).toFixed(2);
+        localStorage.setItem('dailyCost', dailyTotal);
+        location.reload(); 
+    }
+
+    function record() {
+        const input = document.getElementById('revenue-input');
+        const val = parseFloat(input.value);
+        if (val > 0) {
+            const costLib = JSON.parse(localStorage.getItem('cost_lib')) || {};
+            const result = AccountingEngine.calculateProfit(val, Object.keys(costLib)[0]);
+            totalRev += val;
+            localStorage.setItem('todayRev', totalRev);
+            AccountingEngine.saveDailySnapshot(totalRev); 
+            if (typeof AchievementSystem !== 'undefined') AchievementSystem.check();
+            showProfitFeedback(result.netProfit, result.materialCost);
+            input.value = '';
+            render();
         }
+    }
 
-        function move(s) {
-            document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
-            document.getElementById('s' + s).classList.add('active');
-            document.getElementById('bar').style.width = ((s + 1) / 4 * 100) + '%';
-        }
+    function showProfitFeedback(net, mat) {
+        document.getElementById('profit-tip').innerText = `✨ 纯赚 ¥${net} (物料 ¥${mat})`;
+        setTimeout(() => { document.getElementById('profit-tip').innerText = ""; }, 3000);
+    }
 
-        // 核心修复：存储原子成本数据，确保 main.html 导出不再为 0
-        function save() {
-            const rent = Number(document.getElementById('rent').value) || 0;
-            const salary = Number(document.getElementById('salary').value) || 0;
-            const misc = Number(document.getElementById('misc').value) || 0;
+    function toggleReport() {
+        const modal = document.getElementById('report-modal');
+        const isOpening = modal.style.display !== 'block';
+        modal.style.display = isOpening ? 'block' : 'none';
+        if(isOpening) { renderChart(); renderHistoryList(); calculateForecast(); }
+    }
+
+    function calculateForecast() {
+        const history = JSON.parse(localStorage.getItem('revenue_history')) || {};
+        const dates = Object.keys(history);
+        if (dates.length === 0) return;
+        const now = new Date();
+        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const remainingDays = daysInMonth - now.getDate();
+        const profits = dates.slice(-7).map(d => parseFloat(history[d].profit) || 0);
+        const avgDailyProfit = profits.reduce((a, b) => a + b, 0) / profits.length;
+        const currentTotalProfit = dates.reduce((sum, d) => sum + (parseFloat(history[d].profit) || 0), 0);
+        const estimatedTotal = currentTotalProfit + (avgDailyProfit * remainingDays);
+        document.getElementById('forecast-val').innerText = `¥ ${estimatedTotal.toFixed(2)}`;
+    }
+
+    function renderChart() {
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        const trend = AccountingEngine.getTrendData();
+        if (window.myChart) window.myChart.destroy();
+        window.myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: trend.labels,
+                datasets: [{ label: '营收', data: trend.data, borderColor: '#ff85a2', tension: 0.4, fill: true, backgroundColor: 'rgba(255,133,162,0.1)' }]
+            },
+            options: { plugins: { legend: { display: false } } }
+        });
+    }
+
+    function renderHistoryList() {
+        const history = JSON.parse(localStorage.getItem('revenue_history')) || {};
+        let html = '<h3 style="font-size:14px; margin:20px 0 10px; color:#666;">历史账单</h3>';
+        Object.keys(history).reverse().forEach(date => {
+            html += `<div class="history-item"><span>${date}</span><strong>¥${history[date].revenue} (${history[date].achievement}%)</strong></div>`;
+        });
+        document.getElementById('history-list').innerHTML = html;
+    }
+
+    // 核心重构：CSV 导出逻辑
+    function exportCSV() {
+        const history = JSON.parse(localStorage.getItem('revenue_history')) || {};
+        
+        // 1. 获取最新的月度成本原子数据
+        const r = parseFloat(localStorage.getItem('monthlyRent')) || 0;
+        const s = parseFloat(localStorage.getItem('monthlySalary')) || 0;
+        const o = parseFloat(localStorage.getItem('monthlyOther')) || 0;
+        
+        // 2. 导出时计算日均值（逻辑与 setup 保持绝对统一）
+        const dRent = (r / 30).toFixed(2);
+        const dSalary = (s / 30).toFixed(2);
+        const dOther = (o / 30).toFixed(2);
+        const dailyFixedTotal = parseFloat(dRent) + parseFloat(dSalary) + parseFloat(dOther);
+
+        let csv = "日期,总营收,毛利(仅扣物料),达成率,日均房租,日均人工,日均杂费,绝对净利(扣除所有)\n";
+        
+        Object.keys(history).forEach(d => {
+            const h = history[d];
+            const revVal = parseFloat(h.revenue) || 0;
+            const netProfitVal = parseFloat(h.profit) || 0;
+
+            // 逻辑：h.profit 已经是扣除固定成本后的纯利
+            // 毛利 = 纯利 + 每日固定成本
+            let grossProfitVal = (netProfitVal + dailyFixedTotal).toFixed(2);
             
-            // 1. 计算总日均成本供仪表盘计算达成率
-            const daily = (rent + salary + misc) / 30;
-            localStorage.setItem('dailyCost', daily.toFixed(2));
-            
-            // 2. 必须分别存储原子数据，供老板锁修改及 CSV 导出使用
-            localStorage.setItem('monthlyRent', rent);
-            localStorage.setItem('monthlySalary', salary);
-            localStorage.setItem('monthlyOther', misc);
-            
-            // 3. 基础配置
-            localStorage.setItem('industry_type', selectedIndustry);
-            localStorage.setItem('hasSetup', 'true');
-            localStorage.setItem('todayRev', '0');
-            
-            window.location.href = 'main.html';
-        }
-    </script>
+            // INTJ 逻辑防御：如果没设物料费，毛利理论上等于营收。
+            // 如果计算出的毛利 > 营收，强制修剪为营收值。
+            if (parseFloat(grossProfitVal) > revVal) {
+                grossProfitVal = revVal.toFixed(2);
+            }
+
+            csv += `${d},${revVal.toFixed(2)},${grossProfitVal},${h.achievement}%,${dRent},${dSalary},${dOther},${netProfitVal.toFixed(2)}\n`;
+        });
+        
+        const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `Precision_Report_${new Date().toLocaleDateString()}.csv`;
+        link.click();
+    }
+
+    function render() {
+        const currentDailyCost = getDailyCost();
+        const score = Math.floor((totalRev / currentDailyCost) * 100);
+        const scoreEl = document.getElementById('health-score');
+        scoreEl.innerText = score + '%';
+        scoreEl.style.color = score >= 100 ? "var(--success-green)" : "var(--primary-pink)";
+        const emoji = document.getElementById('emoji-status');
+        if(score === 0) emoji.innerText = "😴";
+        else if(score < 100) emoji.innerText = "🦦";
+        else if(score < 200) emoji.innerText = "🍤";
+        else emoji.innerText = "💎";
+        const earned = JSON.parse(localStorage.getItem('earned_badges')) || [];
+        earned.forEach(id => { if(document.getElementById('badge-'+id)) document.getElementById('badge-'+id).classList.add('active-badge'); });
+    }
+
+    const today = new Date().toLocaleDateString();
+    if (localStorage.getItem('last_active_date') !== today) {
+        localStorage.setItem('todayRev', '0');
+        localStorage.setItem('last_active_date', today);
+    }
+    document.getElementById('date-display').innerText = today;
+    applyIndustry(); 
+    window.onload = render;
+</script>
 </body>
 </html>
