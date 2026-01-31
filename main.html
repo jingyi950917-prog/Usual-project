@@ -130,6 +130,28 @@
     }
 
     function closeCostModal() { document.getElementById('cost-detail-modal').style.display = 'none'; }
+    function triggerVision() {
+    document.getElementById('vision-upload').click();
+}
+
+async function handleVision(input) {
+    if (input.files && input.files[0]) {
+        document.getElementById('profit-tip').innerText = "🔍 正在识别收据内容...";
+        
+        // 这里模拟 OCR 后的文本传入（实际环境需配合 OCR 库）
+        // 假设获取到了文本 rawText
+        const rawText = "实付 128.00 数量 1"; 
+        
+        if (window.UniversalVision) {
+            const data = await UniversalVision.parseAnyReceipt(rawText);
+            if (data.totalCost > 0) {
+                // 自动填入你刚才提到的“支出”框
+                document.getElementById('expense-input').value = data.totalCost;
+                document.getElementById('profit-tip').innerText = `✅ 已识别: ${data.itemName || '项目'} ¥${data.totalCost}`;
+            }
+        }
+    }
+}
 
     function record() {
         const input = document.getElementById('revenue-input');
