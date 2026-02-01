@@ -1,4 +1,3 @@
-下面是accounting.js
 /**
  * 模块：水獭主理人财务内核 (Accounting Engine V4.0)
  * 功能：深度整合固定成本、耗材追踪、以及历史数据快照
