@@ -135,15 +135,16 @@
     if (localStorage.getItem('hasSetup') !== 'true') window.location.href = 'index.html';
     // ====== 新增：跨天自动重置 ======
    (function resetNewDay(){
-      const today = new Date().toLocaleDateString();
+    const today = new Date().toLocaleDateString();
+    const lastDate = localStorage.getItem('lastVisitDate');
 
-      const lastDate = localStorage.getItem('lastVisitDate');
+    if (lastDate && lastDate !== today) {
 
-      if (lastDate !== today) {
-        // 新的一天 → 清零今日数据
+        // 👇 关键：把昨天最后状态写入历史
+        const yesterdayRev = parseFloat(localStorage.getItem('todayRev')) || 0;
+        AccountingEngine.saveDailySnapshot(yesterdayRev);
+
         localStorage.setItem('todayRev', '0');
-
-        // 如果你希望“当日记录次数”也重置（配合勋章）
         localStorage.setItem('todayRecordCount', '0');
     }
 
@@ -393,14 +394,34 @@ setTimeout(() => {
         });
     }
 
-    function renderHistoryList() {
+   function renderHistoryList() {
         const history = JSON.parse(localStorage.getItem('revenue_history')) || {};
-        let html = '<h3 style="font-size:14px; margin:20px 0 10px; color:#666;">历史账单</h3>';
-        Object.keys(history).reverse().forEach(date => {
-            html += `<div class="history-item"><span>${date}</span><strong>¥${history[date].revenue} (${history[date].achievement}%)</strong></div>`;
+
+        // 稳定按日期排序
+        const dates = Object.keys(history).sort((a,b)=>{
+            return new Date(b) - new Date(a);
         });
-        document.getElementById('history-list').innerHTML = html;
-    }
+
+        let html = '<h3 style="font-size:14px; margin:20px 0 10px; color:#666;">历史账单</h3>';
+
+        dates.forEach(date => {
+
+           const h = history[date] || {};
+
+           const rev = parseFloat(h.revenue) || 0;
+           const ach = parseFloat(h.achievement) || 0;
+
+           html += `
+          <div class="history-item">
+            <span>${date}</span>
+            <strong>
+                ¥${rev.toFixed(2)} (${ach}%)
+            </strong>
+        </div>`;
+    });
+
+    document.getElementById('history-list').innerHTML = html;
+}
 
     function render() {
         const rev = parseFloat(localStorage.getItem('todayRev')) || 0;
