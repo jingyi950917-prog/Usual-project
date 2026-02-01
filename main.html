@@ -108,6 +108,21 @@
 <script>
     if (localStorage.getItem('hasSetup') !== 'true') window.location.href = 'index.html';
 
+    function checkAndResetDay() {
+    const todayStr = new Date().toLocaleDateString();
+    const lastDate = localStorage.getItem('lastRecordDate');
+
+    if (lastDate !== todayStr) {
+        // 发现跨天，强制双清零
+        localStorage.setItem('todayRev', 0);
+        localStorage.setItem('todayExp', 0);
+        localStorage.setItem('lastRecordDate', todayStr);
+        console.log(`[系统] 检测到新的一天 ${todayStr}，已初始化账目。`);
+        return true;
+    }
+    return false;
+}
+
     function validateBoss(target) {
         if (prompt("请输入老板锁密码：") === "0000") {
             if (target === 'cost') {
@@ -136,62 +151,57 @@
     function recordExpense() {
     const input = document.getElementById('expense-input');
     const val = parseFloat(input.value);
-    if (val > 0) {
-        let dailyExp = parseFloat(localStorage.getItem('todayExp')) || 0;
-        dailyExp += val;
-        localStorage.setItem('todayExp', dailyExp);
-        
-        // 更新快照
-        const rev = parseFloat(localStorage.getItem('todayRev')) || 0;
-        AccountingEngine.saveDailySnapshot(rev, dailyExp);
-        
-        alert(`已记录支出: ¥${val}`);
-        input.value = '';
-        render();
-    }
+    if (!(val > 0)) return;
+
+    // 1. 执行日期校验
+    checkAndResetDay();
+
+    // 2. 累加支出
+    let dailyExp = parseFloat(localStorage.getItem('todayExp')) || 0;
+    dailyExp += val;
+    localStorage.setItem('todayExp', dailyExp);
+    
+    // 3. 更新快照
+    const rev = parseFloat(localStorage.getItem('todayRev')) || 0;
+    AccountingEngine.saveDailySnapshot(rev, dailyExp);
+    
+    alert(`✅ 已记录支出: ¥${val}`);
+    input.value = '';
+    render();
 }
 
+
     
-    function record() {
+ function record() {
     const input = document.getElementById('revenue-input');
     const val = parseFloat(input.value);
-    if (!(val > 0)) return; // 严谨性检查
+    if (!(val > 0)) return;
 
-    // --- 关键修复：日期校验逻辑 ---
-    const todayStr = new Date().toLocaleDateString();
-    const lastRecordDate = localStorage.getItem('lastRecordDate');
-    
-    let rev;
-    if (lastRecordDate !== todayStr) {
-        // 如果日期变了，营收重新从 0 开始计算，并更新日期锚点
-        rev = 0;
-        localStorage.setItem('lastRecordDate', todayStr);
-    } else {
-        // 如果还是同一天，读取已有的累加值
-        rev = parseFloat(localStorage.getItem('todayRev')) || 0;
-    }
-    // ----------------------------
+    // 1. 执行日期校验
+    checkAndResetDay();
 
+    // 2. 累加营收
+    let rev = parseFloat(localStorage.getItem('todayRev')) || 0;
     rev += val;
     localStorage.setItem('todayRev', rev);
     
+    // 3. 核心计算与保存
+    const dailyExp = parseFloat(localStorage.getItem('todayExp')) || 0;
     const result = AccountingEngine.calculateProfit(val);
-    AccountingEngine.saveDailySnapshot(rev); // 确保快照保存的是当天截止到目前的总额
+    // 注意：这里必须同时传入当前的累计营收和累计支出
+    AccountingEngine.saveDailySnapshot(rev, dailyExp);
 
+    // 勋章与 UI 反馈
     try {
-        if (typeof AchievementEngine !== 'undefined') {
-            AchievementEngine.check(val);
-        }
-    } catch (e) {
-        console.error("勋章判定执行出错:", e);
-    }
+        if (typeof AchievementEngine !== 'undefined') AchievementEngine.check(val);
+    } catch (e) { console.error("勋章错误:", e); }
 
     document.getElementById('profit-tip').innerText = `✨ 纯赚 ¥${result.netProfit}`;
     setTimeout(() => document.getElementById('profit-tip').innerText="", 3000);
-    
     input.value = ''; 
     render();
 }
+
 
 
     function toggleReport() {
