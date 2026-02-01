@@ -59,7 +59,9 @@
 "6GX5447N","ZX74KSG5","WGES64DB","NR6H8XX6","QB3N9YTZ","TF6WJZ67","XWV4KZHX","XSYCDLHB","QMABA2GY","J32TYB5D","QFGLC6MJ",
 "G6C797BN","2W394327","FM2G6ART","44ET8X2M","H27M5UH4","TCFSZ7GP","8SNV5SMH","MD7AYYNV","75XG2E3R","NKAEYBXQ","6ZAGFG35",
 "EZM5RNGY","5PDX9587","UM359UGD","2Y5DC65R","YX8BCKJ2","RTVLDGSJ","8ZWME5DY","9J2XAMLL","2ZQQ33UX","WKJJL2ZJ",
-"XY9EP4DN","FNQXNADX","C37PNA5D","RQVZNYS3"]; // 你的激活码库
+"XY9EP4DN","FNQXNADX","C37PNA5D","RQVZNYS3"]; // 激活码库
+    // 黑名单数组
+const BLACKLIST = ["KDRBLCC9"]; 
     let currentLang = localStorage.getItem('lang') || 'zh';
 
     const translations = {
@@ -101,6 +103,11 @@
 
     function handleVerify() {
         const input = document.getElementById('activation-code').value.trim().toUpperCase();
+         if (BLACKLIST.includes(input)) {
+        alert(currentLang === 'zh' ? "该激活码已作废或已被禁用 🦦" : "This code has been disabled. 🦦");
+        return; // 直接拦截，不进行后续比对
+    }
+
         if (CODES.includes(input)) {
             localStorage.setItem('isActivated', 'true');
             showGuide();
