@@ -127,36 +127,46 @@
 
     function closeCostModal() { document.getElementById('cost-detail-modal').style.display = 'none'; }
 
-    function record() {
+   function record() {
     const input = document.getElementById('revenue-input');
     const val = parseFloat(input.value);
-    if (val > 0) {
-        let rev = parseFloat(localStorage.getItem('todayRev')) || 0;
-        rev += val;
-        localStorage.setItem('todayRev', rev);
-        
-        const result = AccountingEngine.calculateProfit(val);
-        AccountingEngine.saveDailySnapshot(rev);
+    if (!(val > 0)) return; // 严谨性检查
 
-        // 【强力联动】不再判断 window，直接尝试调用并捕获错误
-        try {
-            if (typeof AchievementEngine !== 'undefined') {
-                // 必须传入 val (单次金额) 而不是 rev (今日总额) 
-                // 这样 recordCount (记录次数) 才会准确自增
-                AchievementEngine.check(val);
-            } else {
-                console.error("勋章引擎尚未加载");
-            }
-        } catch (e) {
-            console.error("勋章判定执行出错:", e);
-        }
-
-        document.getElementById('profit-tip').innerText = `✨ 纯赚 ¥${result.netProfit}`;
-        setTimeout(() => document.getElementById('profit-tip').innerText="", 3000);
-        input.value = ''; 
-        render();
+    // --- 关键修复：日期校验逻辑 ---
+    const todayStr = new Date().toLocaleDateString();
+    const lastRecordDate = localStorage.getItem('lastRecordDate');
+    
+    let rev;
+    if (lastRecordDate !== todayStr) {
+        // 如果日期变了，营收重新从 0 开始计算，并更新日期锚点
+        rev = 0;
+        localStorage.setItem('lastRecordDate', todayStr);
+    } else {
+        // 如果还是同一天，读取已有的累加值
+        rev = parseFloat(localStorage.getItem('todayRev')) || 0;
     }
+    // ----------------------------
+
+    rev += val;
+    localStorage.setItem('todayRev', rev);
+    
+    const result = AccountingEngine.calculateProfit(val);
+    AccountingEngine.saveDailySnapshot(rev); // 确保快照保存的是当天截止到目前的总额
+
+    try {
+        if (typeof AchievementEngine !== 'undefined') {
+            AchievementEngine.check(val);
+        }
+    } catch (e) {
+        console.error("勋章判定执行出错:", e);
+    }
+
+    document.getElementById('profit-tip').innerText = `✨ 纯赚 ¥${result.netProfit}`;
+    setTimeout(() => document.getElementById('profit-tip').innerText="", 3000);
+    input.value = ''; 
+    render();
 }
+
 
     function toggleReport() {
         const modal = document.getElementById('report-modal');
