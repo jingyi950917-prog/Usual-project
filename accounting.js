@@ -40,11 +40,15 @@ const AccountingEngine = {
     },
 
     // 3. 核心修复：保存每日快照（逻辑防呆版）
-    saveDailySnapshot(totalRev) {
-        const dailyCost = parseFloat(localStorage.getItem('dailyCost')) || 1;
+    saveDailySnapshot(totalRev, totalExp = 0) {
+        const dailyCost = parseFloat(localStorage.getItem('dailyCost')) || 0;
         const history = JSON.parse(localStorage.getItem('revenue_history')) || {};
         const today = new Date().toLocaleDateString();
-        
+        const currentExp = totalExp || parseFloat(localStorage.getItem('todayExp')) || 0;
+        const grossProfit = totalRev - currentExp; // 毛利
+        const netProfit = grossProfit - dailyFixedCost; // 净利
+
+
         // 【逻辑闭环】检查是否跨天
         const lastSnapshotDate = localStorage.getItem('last_snapshot_date');
         if (lastSnapshotDate && lastSnapshotDate !== today) {
@@ -56,7 +60,8 @@ const AccountingEngine = {
         // 记录当日终盘数据
         history[today] = {
             revenue: parseFloat(totalRev).toFixed(2),
-            profit: (totalRev - dailyCost).toFixed(2),
+            expense: currentExp.toFixed(2), // 新增支出项
+            profit: netProfit.toFixed(2),    // 这里存的是绝对净利
             achievement: Math.floor((totalRev / dailyCost) * 100)
         };
         
