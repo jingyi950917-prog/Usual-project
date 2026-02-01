@@ -47,8 +47,8 @@ const AccountingEngine = {
         const history = JSON.parse(localStorage.getItem('revenue_history')) || {};
         const today = new Date().toLocaleDateString();
         
-        // 优先使用传入的 totalExp，否则从本地存储读取
-        const currentExp = totalExp || parseFloat(localStorage.getItem('todayExp')) || 0;
+        // 优先使用传入的 totalExp
+        const currentExp = totalExp || parseFloat(localStorage.getItem('todayExp')) ?? 0;
         
         // --- 财务逻辑计算 ---
         const grossProfit = totalRev - currentExp; // 毛利 = 总营收 - 今日采购支出
