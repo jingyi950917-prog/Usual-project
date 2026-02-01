@@ -3,8 +3,8 @@ const AchievementEngine = {
         { id: 'first_blood', name: '首单入账', icon: '💰', desc: '打破鸭蛋，开工大吉！', condition: (s) => s.totalSales > 0 },
         { id: 'profitable_king', name: '盈利王者', icon: '👑', desc: '连续达标，你是房东克星！', condition: (s) => s.streak >= 3 },
         { id: 'smart_buyer', name: '精明猎手', icon: '🦊', desc: '精准记账，每一分钱都有据可查。', condition: (s) => s.recordCount >= 5 },
-        { id: 'anti_procrastination', name: '黄金选手', icon: '🔥', desc: '超绝主理人！今日目标已达成。', condition: (s) => s.isDailyGoalMet === true }，
-        { id: 'game', name: '生意火爆', icon: '🎮', desc: '史上最勤奋主理人，休息一下吧。', condition: (s) => s.recordCount >= 10 }
+        { id: 'anti_procrastination', name: '黄金选手', icon: '🔥', desc: '超绝主理人！今日目标已达成。', condition: (s) => s.isDailyGoalMet === true }
+        
     ],
 
     getStats() {
