@@ -48,6 +48,12 @@
     <div id="health-score" class="health-score">0%</div>
     <div class="health-label">今日目标达成率</div>
     <div id="emoji-status">😴</div>
+    <div class="input-card" style="background: #fff5f5; margin-top: 10px;">
+      <input type="number" id="expense-input" inputmode="decimal" placeholder="¥ 支出金额">
+      <div style="font-size: 12px; color: #ccabb3; margin-top: 10px;">记录今日采购/杂项支出</div>
+    </div>
+    <button class="btn-main" style="background: #ffb1c1; margin-bottom: 10px;" onclick="recordExpense()">记录支出</button>
+
     <div class="input-card">
         <input type="number" id="revenue-input" inputmode="decimal" placeholder="¥ 0.00">
         <div id="unit-tip" style="font-size: 12px; color: #ccabb3; margin-top: 10px;">记录成交金额</div>
@@ -127,7 +133,26 @@
 
     function closeCostModal() { document.getElementById('cost-detail-modal').style.display = 'none'; }
 
-   function record() {
+    function recordExpense() {
+    const input = document.getElementById('expense-input');
+    const val = parseFloat(input.value);
+    if (val > 0) {
+        let dailyExp = parseFloat(localStorage.getItem('todayExp')) || 0;
+        dailyExp += val;
+        localStorage.setItem('todayExp', dailyExp);
+        
+        // 更新快照
+        const rev = parseFloat(localStorage.getItem('todayRev')) || 0;
+        AccountingEngine.saveDailySnapshot(rev, dailyExp);
+        
+        alert(`已记录支出: ¥${val}`);
+        input.value = '';
+        render();
+    }
+}
+
+    
+    function record() {
     const input = document.getElementById('revenue-input');
     const val = parseFloat(input.value);
     if (!(val > 0)) return; // 严谨性检查
@@ -163,6 +188,7 @@
 
     document.getElementById('profit-tip').innerText = `✨ 纯赚 ¥${result.netProfit}`;
     setTimeout(() => document.getElementById('profit-tip').innerText="", 3000);
+    
     input.value = ''; 
     render();
 }
@@ -236,9 +262,12 @@
             const h = history[d];
             const net = parseFloat(h.profit) || 0;
             const rev = parseFloat(h.revenue) || 0;
+            const exp = parseFloat(h.expense) || 0;
+            const gross = (rev - exp).toFixed(2); // 计算毛利
+            
             let gross = (net + dFixed).toFixed(2);
             if(parseFloat(gross) > rev) gross = rev.toFixed(2);
-            csv += `${d},${rev},${gross},${h.achievement}%,${(r/30).toFixed(2)},${(s/30).toFixed(2)},${(o/30).toFixed(2)},${net}\n`;
+            csv += `${d},${rev},${gross},${h.achievement}%,${exp},${(r/30).toFixed(2)},${(s/30).toFixed(2)},${(o/30).toFixed(2)},${net}\n`;
         });
         const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
