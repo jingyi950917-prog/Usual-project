@@ -335,11 +335,17 @@
     document.documentElement.style.setProperty('--primary-pink', config.theme);
     document.getElementById('industry-logo').innerText = `🦦 ${config.icon} ${config.name.toUpperCase()} STATION`;
 
-    window.onload = render;
-    // 在 render() 结尾加入，确保即便不录入，当天的房租扣除也会记录
-   const currentRev = parseFloat(localStorage.getItem('todayRev')) || 0;
-   const currentExp = parseFloat(localStorage.getItem('todayExp')) || 0;
-   AccountingEngine.saveDailySnapshot(currentRev, currentExp);
+ window.onload = () => {
+    // 1. 先检查是否跨天并清零
+    checkAndResetDay(); 
+    // 2. 渲染 UI
+    render();
+    // 3. 执行一次自动快照（确保房租被扣除）
+    const currentRev = parseFloat(localStorage.getItem('todayRev')) || 0;
+    const currentExp = parseFloat(localStorage.getItem('todayExp')) || 0;
+    AccountingEngine.saveDailySnapshot(currentRev, currentExp);
+};
+
 
 </script>
 </body>
