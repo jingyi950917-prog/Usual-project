@@ -1,6 +1,5 @@
 /**
- * 能量基石 - 全自动化双语引擎 (Setup + Main 通用)
- * 原则：基于中文文本特征进行实时劫持翻译
+ * 能量基石 - 全自动化双语引擎 (已整合 ROI 补齐 & CSV 劫持)
  */
 const i18nConfig = {
     'en': {
@@ -43,15 +42,22 @@ const i18nConfig = {
         '保存': 'Save',
         '取消': 'Cancel',
 
-        // === 动态匹配关键词 (用于处理含变量的句子) ===
-        '⏳ 距离打平还差': '⏳ Gap to breakeven:',
-        '🎯 已打平成本！从现在开始都是利润': '🎯 Breakeven reached! Profit starts now',
-        '✨ 纯赚': '✨ Net Profit:',
-        '累计纯利': 'Total Profit:',
+        // === 补充词条：解决 ROI 未完全翻译的问题 ===
+        '进度': 'Progress',
+        '累计纯利': 'Total Profit',
         '还需': 'Need',
         '回本': 'to ROI',
         '预计还需': 'Estimated',
         '天回本': 'days to ROI',
+        '（约': '(Est.',
+
+        // === 补充词条：解决 CSV 导出翻译的问题 ===
+        '日期,总营收,毛利,达成率,日均房租,日均人工,日均杂费,绝对净利': 'Date,Revenue,Gross,Achievement,Rent/D,Salary/D,Misc/D,Net Profit',
+
+        // === 动态匹配关键词 ===
+        '⏳ 距离打平还差': '⏳ Gap to breakeven:',
+        '🎯 已打平成本！从现在开始都是利润': '🎯 Breakeven reached! Profit starts now',
+        '✨ 纯赚': '✨ Net Profit:',
         '还没设定成本哦～': 'Costs not set yet...',
         '先点右上角': 'Please click top-right',
         '我才能帮你算': 'to calculate progress',
@@ -63,6 +69,26 @@ const i18nConfig = {
 
 (function() {
     let currentLang = localStorage.getItem('lang') || 'zh';
+    const isEn = currentLang === 'en';
+
+    // 【新增】拦截并翻译 CSV 数据流 (不改原代码的核心逻辑)
+    const originalBlob = window.Blob;
+    if (isEn) {
+        window.Blob = function(contentArray, options) {
+            if (options && options.type && options.type.includes('csv')) {
+                let csvContent = contentArray[0];
+                const dict = i18nConfig['en'];
+                // 对 CSV 文本进行遍历替换
+                for (let zhKey in dict) {
+                    if (csvContent.includes(zhKey)) {
+                        csvContent = csvContent.split(zhKey).join(dict[zhKey]);
+                    }
+                }
+                return new originalBlob([csvContent], options);
+            }
+            return new originalBlob(contentArray, options);
+        };
+    }
 
     // 1. 创建 UI 按钮
     const btn = document.createElement('div');
@@ -80,22 +106,25 @@ const i18nConfig = {
         if (currentLang === 'zh') return;
         const dict = i18nConfig['en'];
 
-        // A. 文本节点翻译
         const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
         let node;
         while (node = walker.nextNode()) {
-            let text = node.nodeValue.trim();
-            if (!text) continue;
+            let val = node.nodeValue;
+            let changed = false;
             
-            // 尝试精确匹配或前缀匹配
+            // 使用 split/join 确保整句中的所有匹配词条都被替换
             for (let zhKey in dict) {
-                if (text.includes(zhKey)) {
-                    node.nodeValue = node.nodeValue.replace(zhKey, dict[zhKey]);
+                if (val.includes(zhKey)) {
+                    val = val.split(zhKey).join(dict[zhKey]);
+                    changed = true;
                 }
             }
+            
+            if (changed) node.nodeValue = val;
+            
             // 符号处理
             if (node.nodeValue.includes('¥')) {
-                node.nodeValue = node.nodeValue.replace('¥', '$');
+                node.nodeValue = node.nodeValue.replace(/¥/g, '$');
             }
         }
 
@@ -108,12 +137,12 @@ const i18nConfig = {
             if (placeholders[input.placeholder]) {
                 input.placeholder = placeholders[input.placeholder];
             } else if (input.placeholder.includes('¥')) {
-                input.placeholder = input.placeholder.replace('¥', '$');
+                input.placeholder = input.placeholder.replace(/¥/g, '$');
             }
         });
     }
 
-    // 3. 动态监听（核心：处理弹窗文案）
+    // 3. 动态监听
     const observer = new MutationObserver(() => {
         if (currentLang === 'en') runTranslation();
     });
