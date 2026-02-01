@@ -270,8 +270,31 @@ function jumpToRecord(){
             console.error("勋章判定执行出错:", e);
         }
 
-        document.getElementById('profit-tip').innerText = `✨ 纯赚 ¥${result.netProfit}`;
-        setTimeout(() => document.getElementById('profit-tip').innerText="", 3000);
+        const todayRev = parseFloat(localStorage.getItem('todayRev')) || 0;
+const dailyCost = parseFloat(localStorage.getItem('dailyCost')) || 0;
+
+let tip = "";
+
+if (todayRev === 0) {
+    tip = "";                                    // 刚进来啥也不说
+}
+else if (todayRev < dailyCost) {
+    const gap = dailyCost - todayRev;
+    tip = `⏳ 距离打平还差 ¥${gap.toFixed(2)}`;
+}
+else if (todayRev === dailyCost) {
+    tip = "🎯 已打平成本！从现在开始都是利润";
+}
+else {
+    const net = todayRev - dailyCost;
+    tip = `✨ 纯赚 ¥${net.toFixed(2)}`;
+}
+
+document.getElementById('profit-tip').innerText = tip;
+
+setTimeout(() => {
+    document.getElementById('profit-tip').innerText = "";
+}, 3000);
         input.value = ''; 
         render();
     }
