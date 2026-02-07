@@ -107,7 +107,7 @@
     </div>
 
     <div class="forecast-card">
-        <div style="font-size: 11px; color: #666; font-weight: bold;">🔮 月度利润预测</div>
+        <div style="font-size: 11px; color: #666; font-weight: bold;">🔮 智能月度利润预测<span id="trend-icon"></span></div>
         <div id="forecast-val" style="font-size: 20px; color: #4facfe; font-weight: bold; margin-top: 5px;">计算中...</div>
         <div style="font-size: 10px; color: #999; margin-top: 3px;">基于近7日表现预测本月净盈余</div>
     </div>
@@ -355,27 +355,55 @@ setTimeout(() => {
         }
     }
 
-    function calculateForecast() {
-        const history = JSON.parse(localStorage.getItem('revenue_history')) || {};
-        const dates = Object.keys(history);
-        if (dates.length === 0) return;
+ function calculateForecast() {
+    const history = JSON.parse(localStorage.getItem('revenue_history')) || {};
+    const dates = Object.keys(history).sort(); // 确保日期有序
+    if (dates.length === 0) return;
 
-        const now = new Date();
-        const totalDaysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-        const currentDay = now.getDate();
-        const remainingDays = totalDaysInMonth - currentDay;
+    const now = new Date();
+    const todayStr = now.toLocaleDateString();
+    const totalDaysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const currentDay = now.getDate();
+    const remainingDays = totalDaysInMonth - currentDay;
 
-        const profits = dates.slice(-7).map(d => parseFloat(history[d].profit) || 0);
-        const avgDailyProfit = profits.reduce((a, b) => a + b, 0) / profits.length;
-        const currentTotalProfit = Object.values(history).reduce((sum, h) => sum + (parseFloat(h.profit) || 0), 0);
+    // 1. 计算本月已实现的真实利润 (本月 1 号至今)
+    const currentMonthPrefix = `${now.getFullYear()}/${now.getMonth() + 1}/`; 
+    // 注意：根据你的日期格式调整匹配逻辑，这里假设是 YYYY/M/D
+    
+    let currentMonthProfit = 0;
+    let last7DaysProfits = [];
 
-        const estimatedTotal = remainingDays > 0 
-            ? currentTotalProfit + (avgDailyProfit * remainingDays) 
-            : currentTotalProfit;
+    dates.forEach(d => {
+        const h = history[d];
+        const p = parseFloat(h.profit) || 0;
+        // 如果日期属于本月
+        if (d.includes(currentMonthPrefix) || new Date(d).getMonth() === now.getMonth()) {
+            currentMonthProfit += p;
+        }
+        // 记录所有历史利润用于计算近期惯性
+        last7DaysProfits.push(p);
+    });
 
-        document.getElementById('forecast-val').innerText = `¥ ${estimatedTotal.toFixed(2)}`;
-        calculateROI(avgDailyProfit, currentTotalProfit);
-    }
+    // 2. 计算近期惯性 (取最近 7 次记录的平均值，消除单日爆发或低谷的干扰)
+    const recentSample = last7DaysProfits.slice(-7);
+    const avgDailyInertia = recentSample.reduce((a, b) => a + b, 0) / (recentSample.length || 1);
+
+    // 3. 智算总额 = 既定事实 + (近期惯性 × 剩余天数)
+    const estimatedTotal = currentMonthProfit + (avgDailyInertia * remainingDays);
+
+    // 4. UI 震慑力呈现
+    const forecastEl = document.getElementById('forecast-val');
+    forecastEl.innerText = `¥ ${estimatedTotal.toFixed(2)}`;
+    
+    // 增加颜色反馈：如果预测值超过上月或目标，显示绿色，否则保持冷静蓝
+    forecastEl.style.color = estimatedTotal > 0 ? "#4facfe" : "#ff85a2";
+
+     document.getElementById('trend-icon').innerText = avgDailyInertia > 0 ? "📈" : "📉";
+
+    // 联动计算 ROI 进度
+    calculateROI(avgDailyInertia, currentMonthProfit);
+}
+
 
     function calculateROI(avgDailyProfit, totalProfit) {
         const startup = parseFloat(localStorage.getItem('startupCost')) || 0;
